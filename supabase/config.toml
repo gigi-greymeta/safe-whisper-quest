@@ -1,4 +1,4 @@
-project_id = "gxstqpduuqmhcfgynhfr"
+project_id = "onkoibxcvllrzfxzfyou"
 [functions.delete-identity]
 # New sb_publishable_ keys are not JWTs; the function authorises via its own
 # proof of key possession (supabase/functions/_shared/deletionProof.ts).
