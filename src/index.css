@@ -1,0 +1,128 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 220 20% 97%;
+    --foreground: 220 20% 10%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 220 20% 10%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 20% 10%;
+
+    --primary: 142 60% 45%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 220 14% 92%;
+    --secondary-foreground: 220 20% 10%;
+
+    --muted: 220 14% 92%;
+    --muted-foreground: 220 10% 45%;
+
+    --accent: 142 40% 90%;
+    --accent-foreground: 142 60% 25%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 220 13% 87%;
+    --input: 220 13% 87%;
+    --ring: 142 60% 45%;
+
+    --radius: 0.75rem;
+
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 142 60% 45%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 142 40% 94%;
+    --sidebar-accent-foreground: 142 60% 25%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 142 60% 45%;
+  }
+
+  .dark {
+    --background: 224 30% 7%;
+    --foreground: 210 20% 92%;
+
+    --card: 224 25% 10%;
+    --card-foreground: 210 20% 92%;
+
+    --popover: 224 25% 10%;
+    --popover-foreground: 210 20% 92%;
+
+    --primary: 142 60% 45%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 224 20% 16%;
+    --secondary-foreground: 210 20% 92%;
+
+    --muted: 224 20% 16%;
+    --muted-foreground: 215 15% 55%;
+
+    --accent: 142 30% 15%;
+    --accent-foreground: 142 60% 65%;
+
+    --destructive: 0 62% 35%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 224 20% 16%;
+    --input: 224 20% 18%;
+    --ring: 142 60% 45%;
+
+    --sidebar-background: 224 30% 6%;
+    --sidebar-foreground: 210 20% 85%;
+    --sidebar-primary: 142 60% 45%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 224 20% 12%;
+    --sidebar-accent-foreground: 210 20% 85%;
+    --sidebar-border: 224 20% 14%;
+    --sidebar-ring: 142 60% 45%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+
+  /* Force high-contrast, readable text in every input/textarea/select.
+     Some browsers (DuckDuckGo, Focus, Safari private) inject UA styles
+     that override Tailwind text colors and make typed text invisible. */
+  input,
+  textarea,
+  select {
+    color: hsl(var(--foreground)) !important;
+    caret-color: hsl(var(--foreground)) !important;
+    background-color: hsl(var(--background)) !important;
+    -webkit-text-fill-color: hsl(var(--foreground)) !important;
+    opacity: 1 !important;
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    color: hsl(var(--muted-foreground));
+    -webkit-text-fill-color: hsl(var(--muted-foreground));
+    opacity: 1;
+  }
+
+  /* Kill the yellow autofill background that hides typed text */
+  input:-webkit-autofill,
+  input:-webkit-autofill:hover,
+  input:-webkit-autofill:focus,
+  textarea:-webkit-autofill,
+  select:-webkit-autofill {
+    -webkit-text-fill-color: hsl(var(--foreground)) !important;
+    -webkit-box-shadow: 0 0 0 1000px hsl(var(--background)) inset !important;
+    box-shadow: 0 0 0 1000px hsl(var(--background)) inset !important;
+    caret-color: hsl(var(--foreground)) !important;
+    border-color: hsl(var(--input)) !important;
+  }
+}
