@@ -7,8 +7,23 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     var window: UIWindow?
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
-        // Override point for customization after application launch.
+        excludeWebDataFromBackup()
         return true
+    }
+
+    /// Phantom keeps identity keys and messages in WKWebView storage under
+    /// Library/WebKit. Exclude it from iCloud/iTunes backups so private keys
+    /// never leave the device (matches the privacy policy).
+    private func excludeWebDataFromBackup() {
+        let fm = FileManager.default
+        guard let library = fm.urls(for: .libraryDirectory, in: .userDomainMask).first else { return }
+        for name in ["WebKit", "Caches"] {
+            var url = library.appendingPathComponent(name, isDirectory: true)
+            try? fm.createDirectory(at: url, withIntermediateDirectories: true)
+            var values = URLResourceValues()
+            values.isExcludedFromBackup = true
+            try? url.setResourceValues(values)
+        }
     }
 
     func applicationWillResignActive(_ application: UIApplication) {

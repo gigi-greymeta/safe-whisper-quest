@@ -3,6 +3,7 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import type { RealtimeChannel } from "@supabase/supabase-js";
+import { createDeletionProof } from "../../supabase/functions/_shared/deletionProof.ts";
 
 // ─── Public Key Registry ─────────────────────────────────────────────
 
@@ -313,4 +314,30 @@ export function subscribeToMessages(
 
 export function unsubscribeFromMessages(channel: RealtimeChannel) {
   supabase.removeChannel(channel);
+}
+
+// ─── Identity Deletion ─────────────────────────────────────────────
+
+/**
+ * Permanently delete this identity's server-side data: its public key
+ * directory entry, inbox queues, and any undelivered messages addressed to or
+ * (legacy path) from it. Authorised by proving possession of the private key —
+ * see supabase/functions/_shared/deletionProof.ts.
+ *
+ * Callers must wipe local data straight afterwards: the relay republishes the
+ * public key on every (re)connect.
+ */
+export async function deleteIdentityFromServer(
+  fingerprint: string,
+  privateKeyJwk: JsonWebKey
+): Promise<void> {
+  const { data: keyData, error: keyError } = await supabase.functions.invoke("delete-identity", { method: "GET" });
+  if (keyError || !keyData?.publicKey) throw new Error("Deletion service unavailable. Check your connection and try again.");
+
+  const timestamp = Date.now();
+  const proof = await createDeletionProof(privateKeyJwk, keyData.publicKey, fingerprint, timestamp);
+  const { data, error } = await supabase.functions.invoke("delete-identity", {
+    body: { fingerprint, timestamp, proof },
+  });
+  if (error || !data?.deleted) throw new Error("Server deletion failed. Nothing was erased — try again.");
 }

@@ -286,6 +286,11 @@ const Index = () => {
               <p className="text-[10px] text-muted-foreground text-center">
                 Names are checked against the directory to avoid duplicates.
               </p>
+              <p className="text-[10px] text-muted-foreground text-center">
+                By creating an identity you agree to the{" "}
+                <a href="/legal/terms.html" className="underline">Terms of Service</a> and{" "}
+                <a href="/legal/privacy.html" className="underline">Privacy Policy</a>.
+              </p>
             </>
           )}
         </div>

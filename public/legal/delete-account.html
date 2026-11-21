@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'self'; img-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'">
+<meta name="referrer" content="no-referrer">
+<meta name="description" content="How to delete your Phantom account (identity) and the data on our servers.">
+<title>Account Deletion · Phantom</title>
+<link rel="stylesheet" href="/legal/legal.css">
+<link rel="icon" type="image/png" href="/favicon.png?v=2">
+</head>
+<body>
+<main>
+<nav class="top"><a href="/">&larr; Back to Phantom</a><span><a href="/legal/">All policies</a></span></nav>
+<h1>Delete your Phantom account</h1>
+<p class="meta">Phantom by GreyMeta · Effective 21 November 2026</p>
+<p>This page explains how to delete your account in <strong>Phantom</strong>, the end-to-end encrypted messenger developed by <strong>GreyMeta</strong>. Phantom has no username or password. Your "account" is the cryptographic identity created on your device.</p>
+
+<h2>Delete in the app (immediate)</h2>
+<ol>
+<li>Open Phantom and unlock it.</li>
+<li>Go to <strong>Settings → Data</strong>.</li>
+<li>Tap <strong>Delete Account</strong>.</li>
+<li>Type <strong>DELETE</strong> to confirm, then tap <strong>Delete my account</strong>.</li>
+</ol>
+<p>The app proves to our server that it holds your private key. The server then deletes your data immediately, and the app erases everything stored on your device.</p>
+
+<h2>Request deletion by email (if you no longer have the app)</h2>
+<p>Email <a href="mailto:CONTACT_EMAIL?subject=Phantom%20account%20deletion">CONTACT_EMAIL</a> with the subject "Phantom account deletion". Include your key fingerprint, or if you don't have it, your display name and roughly when you created the identity. We will delete the matching server data within 30 days and confirm by email. We delete the email itself once the request is complete.</p>
+
+<h2>What is deleted</h2>
+<ul>
+<li>Your directory entry: display name, public key and fingerprint</li>
+<li>Your inbox queues</li>
+<li>Encrypted messages waiting to be delivered to you</li>
+<li>On your device (in-app deletion): your keys, contacts, messages, groups, safety numbers, screen lock and encrypted vault</li>
+</ul>
+
+<h2>What is kept, and for how long</h2>
+<ul>
+<li>Encrypted messages <em>you</em> sent that are still waiting in a contact's inbox are not linked to your identity, so we cannot find them to delete them. They are deleted automatically within <strong>7 days</strong>.</li>
+<li>Messages already delivered to your contacts stay on <em>their</em> devices. We have no access to them.</li>
+<li>Vault backup files you exported are under your control. Delete them yourself.</li>
+<li>Short-lived infrastructure logs held by our hosting provider (for example IP addresses) expire on that provider's normal log retention schedule.</li>
+</ul>
+<p>We keep no other copies or backups of deleted data.</p>
+<p>Want to delete only some data? See <a href="/legal/delete-data.html">Data Deletion</a>.</p>
+<footer>
+<a href="/legal/privacy.html">Privacy Policy</a><a href="/legal/terms.html">Terms of Service</a><a href="/legal/delete-account.html">Account Deletion</a><a href="/legal/delete-data.html">Data Deletion</a>
+<p>Phantom is operated by GreyMeta. Contact: <a href="mailto:CONTACT_EMAIL">CONTACT_EMAIL</a></p>
+</footer>
+</main>
+</body>
+</html>

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useCrypto } from "@/hooks/useCrypto";
-import { ArrowLeft, Shield, Flame, Key, Timer, Info, Lock, AlertTriangle, LogOut, Database, HardDrive, Sparkles, Activity, ListChecks, Bug } from "lucide-react";
+import { ArrowLeft, Shield, Flame, Key, Timer, Info, Lock, AlertTriangle, LogOut, Database, HardDrive, Sparkles, Activity, ListChecks, Bug, Trash2, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
@@ -399,6 +399,29 @@ const Settings = () => {
         >
           <Sparkles className="h-4 w-4 mr-2" /> Reset Wizard
         </Button>
+
+        <Button
+          variant="outline"
+          className="w-full border-destructive/50 text-destructive hover:bg-destructive/10"
+          size="lg"
+          onClick={() => navigate("/settings/delete-account")}
+        >
+          <Trash2 className="h-4 w-4 mr-2" /> Delete Account
+        </Button>
+
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm flex items-center gap-2">
+              <FileText className="h-4 w-4 text-primary" /> Legal &amp; Privacy
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="grid gap-2 text-sm">
+            <a className="text-primary underline" href="/legal/privacy.html">Privacy Policy</a>
+            <a className="text-primary underline" href="/legal/terms.html">Terms of Service</a>
+            <a className="text-primary underline" href="/legal/delete-data.html">Data Deletion</a>
+            <a className="text-primary underline" href="/legal/delete-account.html">Account Deletion</a>
+          </CardContent>
+        </Card>
           </TabsContent>
         </Tabs>
 

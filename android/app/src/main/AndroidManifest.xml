@@ -2,7 +2,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <application
-        android:allowBackup="true"
+        android:allowBackup="false"
+        android:fullBackupContent="false"
+        android:dataExtractionRules="@xml/data_extraction_rules"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
@@ -35,7 +37,11 @@
         </provider>
     </application>
 
-    <!-- Permissions -->
+    <!-- Permissions
+         INTERNET is the only permission Phantom needs. Photo attachments use the
+         system file/photo picker, which needs no permission. Do not add CAMERA,
+         storage, contacts, location or microphone permissions without updating
+         the privacy policy and the Play Data safety form. -->
 
     <uses-permission android:name="android.permission.INTERNET" />
 </manifest>

@@ -24,6 +24,7 @@ import SafetyNumber from "./pages/SafetyNumber.tsx";
 import GroupChat from "./pages/GroupChat.tsx";
 import NotFound from "./pages/NotFound.tsx";
 import ResetWizard from "./pages/ResetWizard.tsx";
+import DeleteAccount from "./pages/DeleteAccount.tsx";
 import BackupReminder from "@/components/BackupReminder";
 
 const queryClient = new QueryClient();
@@ -142,6 +143,7 @@ const AppContent = () => {
       <Route path="/chat/:contactId/safety" element={<RequireUnlocked><SafetyNumber /></RequireUnlocked>} />
       <Route path="/group/:groupId" element={<RequireUnlocked><GroupChat /></RequireUnlocked>} />
       <Route path="/settings" element={<RequireUnlocked><Settings /></RequireUnlocked>} />
+      <Route path="/settings/delete-account" element={<RequireUnlocked><DeleteAccount /></RequireUnlocked>} />
       <Route path="/reset" element={<ResetWizard />} />
       <Route path="*" element={<NotFound />} />
       </Routes>

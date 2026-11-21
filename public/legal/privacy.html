@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'self'; img-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'">
+<meta name="referrer" content="no-referrer">
+<meta name="description" content="How Phantom handles your data: end-to-end encrypted, no accounts, no tracking.">
+<title>Privacy Policy · Phantom</title>
+<link rel="stylesheet" href="/legal/legal.css">
+<link rel="icon" type="image/png" href="/favicon.png?v=2">
+</head>
+<body>
+<main>
+<nav class="top"><a href="/">&larr; Back to Phantom</a><span><a href="/legal/">All policies</a></span></nav>
+<h1>Privacy Policy</h1>
+<p class="meta">Phantom by GreyMeta · Effective 21 November 2026</p>
+<div class="summary">
+<p><strong>Short version.</strong> Phantom is an end-to-end encrypted messenger. You do not need an email address, phone number or password to use it. Your messages are encrypted on your device and we cannot read them. The only things our servers hold are your chosen display name, your public key, and encrypted messages that are waiting to be delivered (for at most 7 days). We do not use analytics, advertising or tracking, and we do not sell or share your data.</p>
+</div>
+
+<h2>1. Who we are</h2>
+<p>Phantom ("the app", "we", "us") is operated by GreyMeta. You can contact us about privacy at <a href="mailto:CONTACT_EMAIL">CONTACT_EMAIL</a>. We handle personal information in line with the Australian Privacy Act 1988 (Cth) and the Australian Privacy Principles, and we honour equivalent rights under other privacy laws that apply to you, such as the GDPR.</p>
+
+<h2>2. How Phantom works</h2>
+<p>When you create an identity, the app generates a cryptographic key pair on your device. Your <strong>private key never leaves your device</strong>. Messages and attachments are encrypted on your device (AES-256-GCM, with keys agreed using elliptic-curve Diffie–Hellman and a ratchet for forward secrecy) before they are sent. Our relay server only ever handles ciphertext, and it does not have the keys to decrypt it.</p>
+
+<h2>3. Data stored on your device</h2>
+<p>Your identity key pair, display name, contacts, message history, group membership, safety numbers, settings and optional screen-lock data are stored <strong>only on your device</strong>, in the app's local storage. Where you enable a screen lock, this data is kept in an encrypted vault. We have no access to it. The app excludes it from iCloud and Google device backups. Removing the app, using <em>Burn All Data</em>, or using <em>Delete Account</em> erases it.</p>
+
+<h2>4. Data stored on our servers</h2>
+<table>
+<thead><tr><th>Data</th><th>Why</th><th>Who can see it</th><th>How long</th></tr></thead>
+<tbody>
+<tr><td>Display name, public key and key fingerprint (directory entry)</td><td>So contacts can find you and encrypt messages to you</td><td>Public: any Phantom user can look up or search for it</td><td>Until you delete your account</td></tr>
+<tr><td>Inbox queue identifiers (random-looking IDs derived from your key and a contact's key)</td><td>To route encrypted messages to you</td><td>Not shown to other users</td><td>Until you remove the contact or delete your account; automatically deleted after 30 days without activity</td></tr>
+<tr><td>Encrypted messages and attachments in transit (padded to fixed sizes)</td><td>Store-and-forward delivery while a recipient is offline</td><td>Nobody can read the content; it is end-to-end encrypted</td><td>Automatically deleted after 7 days, or earlier if you delete your account</td></tr>
+<tr><td>Timestamps of when the above records were created</td><td>Expiry and clean-up</td><td>Not shown to other users</td><td>Deleted with the record</td></tr>
+</tbody>
+</table>
+<p>Choose a display name that you are comfortable being public. It does not need to be your real name.</p>
+
+<h2>5. Data we do not collect</h2>
+<ul>
+<li>No phone number, email address, password or real name is needed.</li>
+<li>We cannot read your messages, attachments, contact list or group membership.</li>
+<li>No location, contacts address book, advertising identifier or device identifiers.</li>
+<li>No analytics, crash-reporting, advertising or tracking SDKs.</li>
+</ul>
+
+<h2>6. Network and infrastructure data</h2>
+<p>Our relay runs on Supabase, a cloud database and hosting provider. Like any internet service, Supabase receives your device's IP address and basic request information (such as time and request type) when the app connects, and may keep it in short-lived operational logs for security and reliability. We do not use this information to build profiles or to identify you, and we do not link it to your directory entry. Data may be processed outside Australia, depending on where our Supabase project is hosted.</p>
+
+<h2>7. Device permissions</h2>
+<ul>
+<li><strong>Internet:</strong> to send and receive encrypted messages.</li>
+<li><strong>Camera and photo library (optional):</strong> only when you choose to attach a photo to a message. The photo is encrypted on your device before it is sent. You can refuse this permission and keep using the app.</li>
+</ul>
+<p>Phantom does not use your microphone, location or contacts.</p>
+
+<h2>8. Sharing</h2>
+<p>We do not sell, rent or share your personal information with third parties for advertising or marketing. We use Supabase only as a service provider to run the relay. We may disclose the limited server-side data described above if Australian law requires it. Because messages are end-to-end encrypted, we are not able to provide their content to anyone.</p>
+
+<h2>9. Security</h2>
+<p>We protect data with end-to-end encryption, forward secrecy, message padding, a strict content security policy, encrypted transport (TLS), and short retention periods. No system is perfectly secure. Keep your device and any vault backups you export safe.</p>
+
+<h2>10. Your choices and rights</h2>
+<ul>
+<li><strong>Delete your account:</strong> Settings → Data → Delete Account. See <a href="/legal/delete-account.html">Account Deletion</a>.</li>
+<li><strong>Delete specific data:</strong> see <a href="/legal/delete-data.html">Data Deletion</a>.</li>
+<li><strong>Access or correction:</strong> your data lives on your device and can be viewed or exported from the app. For the server-side data, email us with your key fingerprint.</li>
+<li><strong>Complaints:</strong> contact us first. If you are not satisfied, you can complain to the Office of the Australian Information Commissioner (oaic.gov.au) or to your local data protection authority.</li>
+</ul>
+
+<h2>11. Children</h2>
+<p>Phantom is not directed at children under 13, and we do not knowingly collect information from them.</p>
+
+<h2>12. Changes</h2>
+<p>If we change this policy, we will update the effective date above. If a change is significant, we will also tell you in the app.</p>
+<footer>
+<a href="/legal/privacy.html">Privacy Policy</a><a href="/legal/terms.html">Terms of Service</a><a href="/legal/delete-account.html">Account Deletion</a><a href="/legal/delete-data.html">Data Deletion</a>
+<p>Phantom is operated by GreyMeta. Contact: <a href="mailto:CONTACT_EMAIL">CONTACT_EMAIL</a></p>
+</footer>
+</main>
+</body>
+</html>
