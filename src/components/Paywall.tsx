@@ -13,6 +13,7 @@ import {
   purchaseSubscription,
   redeemOfferCode,
   restoreSubscription,
+  storeErrorMessage,
 } from "@/lib/subscription";
 
 interface PaywallProps {
@@ -38,8 +39,9 @@ const Paywall = ({ onEntitled }: PaywallProps) => {
       const p = await getSubscriptionProduct();
       setProduct(p);
       if (!p) setMessage("Subscriptions are unavailable right now. Check your connection and try again.");
-    } catch {
-      setMessage("Couldn't reach the store. Check your connection and try again.");
+    } catch (e) {
+      console.error("Store product query failed", e);
+      setMessage(storeErrorMessage(e));
     } finally {
       setLoading(false);
     }

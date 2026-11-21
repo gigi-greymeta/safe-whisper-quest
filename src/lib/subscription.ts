@@ -46,6 +46,22 @@ export async function hasActiveSubscription(): Promise<boolean> {
   return isEntitled(purchases, Capacitor.getPlatform());
 }
 
+/**
+ * Turn a store error into something a user (or a tester reading the screen) can act on.
+ * Play Billing reports a subscription it can't return as "Product not found", which is a
+ * store-setup or install problem, not a connection problem.
+ */
+export function storeErrorMessage(error: unknown): string {
+  const detail = error instanceof Error ? error.message : String(error ?? "");
+  if (/product not found|no subscription offers|no pricing phases/i.test(detail))
+    return `This subscription isn't available from the store yet. (${detail})`;
+  if (/BILLING_UNAVAILABLE|FEATURE_NOT_SUPPORTED/i.test(detail))
+    return `Store billing isn't available on this device or account. Sign in to the store app and try again. (${detail})`;
+  if (/SERVICE_UNAVAILABLE|SERVICE_DISCONNECTED|NETWORK|timed? ?out/i.test(detail))
+    return "Couldn't reach the store. Check your connection and try again.";
+  return detail ? `The store returned an error: ${detail}` : "Couldn't reach the store. Check your connection and try again.";
+}
+
 export async function getSubscriptionProduct(): Promise<Product | null> {
   const { products } = await NativePurchases.getProducts({
     productIdentifiers: [SUBSCRIPTION_PRODUCT_ID],

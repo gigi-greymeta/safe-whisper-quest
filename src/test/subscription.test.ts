@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from "vitest";
 
 vi.mock("@capgo/native-purchases", () => ({ NativePurchases: {}, PURCHASE_TYPE: { SUBS: "subs" } }));
 
-import { isEntitled, SUBSCRIPTION_PRODUCT_ID as id } from "@/lib/subscription";
+import { isEntitled, storeErrorMessage, SUBSCRIPTION_PRODUCT_ID as id } from "@/lib/subscription";
 
 const now = Date.parse("2026-11-21T00:00:00Z");
 const future = "2026-12-21T00:00:00Z";
@@ -24,5 +24,20 @@ describe("isEntitled", () => {
   it("Android: only purchased state unlocks", () => {
     expect(isEntitled([{ productIdentifier: id, purchaseState: "1" }], "android", now)).toBe(true);
     expect(isEntitled([{ productIdentifier: id, purchaseState: "2" }], "android", now)).toBe(false);
+  });
+});
+
+describe("storeErrorMessage", () => {
+  it("explains a product Play can't return instead of blaming the connection", () => {
+    expect(storeErrorMessage(new Error("Product not found"))).toMatch(/isn't available from the store yet.*Product not found/);
+  });
+  it("flags billing unavailable on the device or account", () => {
+    expect(storeErrorMessage(new Error("Billing error: BILLING_UNAVAILABLE"))).toMatch(/Sign in to the store app/);
+  });
+  it("keeps the connection message for real network failures", () => {
+    expect(storeErrorMessage(new Error("SERVICE_UNAVAILABLE"))).toMatch(/Check your connection/);
+  });
+  it("shows unknown errors verbatim", () => {
+    expect(storeErrorMessage(new Error("DEVELOPER_ERROR"))).toBe("The store returned an error: DEVELOPER_ERROR");
   });
 });
