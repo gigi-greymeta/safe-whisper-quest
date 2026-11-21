@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Route, Routes, useLocation } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -26,13 +26,50 @@ import NotFound from "./pages/NotFound.tsx";
 import ResetWizard from "./pages/ResetWizard.tsx";
 import DeleteAccount from "./pages/DeleteAccount.tsx";
 import BackupReminder from "@/components/BackupReminder";
+import Paywall from "@/components/Paywall";
+import { hasActiveSubscription, onSubscriptionChange, paywallRequired } from "@/lib/subscription";
 
 const queryClient = new QueryClient();
+
+// Routes reachable without a subscription, so a lapsed user can still delete their account.
+const PAYWALL_EXEMPT_PATHS = ["/settings/delete-account"];
+
+/** "checking" until the store answers; web builds are always "active". */
+const useSubscriptionStatus = () => {
+  const [status, setStatus] = useState<"checking" | "active" | "inactive">(paywallRequired() ? "checking" : "active");
+
+  useEffect(() => {
+    if (!paywallRequired()) return;
+    let cancelled = false;
+    const check = async () => {
+      try {
+        const ok = await hasActiveSubscription();
+        if (!cancelled) setStatus(ok ? "active" : "inactive");
+      } catch {
+        // Store unreachable: keep the current state rather than locking out a paying user.
+        if (!cancelled) setStatus((s) => (s === "checking" ? "inactive" : s));
+      }
+    };
+    void check();
+    const onVisible = () => document.visibilityState === "visible" && void check();
+    document.addEventListener("visibilitychange", onVisible);
+    const unsubscribe = onSubscriptionChange(() => void check());
+    return () => {
+      cancelled = true;
+      document.removeEventListener("visibilitychange", onVisible);
+      unsubscribe();
+    };
+  }, []);
+
+  return [status, () => setStatus("active")] as const;
+};
 
 const AppContent = () => {
   const { state, reloadState } = useCrypto();
   const [locked, setLocked] = useState(false);
   const [wiping, setWiping] = useState(false);
+  const [subscription, markSubscribed] = useSubscriptionStatus();
+  const location = useLocation();
 
   const handleManualLock = async () => {
     clearSessionUnlock();
@@ -132,6 +169,14 @@ const AppContent = () => {
     );
   }
 
+
+  if (subscription === "checking") {
+    return <div className="dark fixed inset-0 bg-background" />;
+  }
+
+  if (subscription === "inactive" && !PAYWALL_EXEMPT_PATHS.includes(location.pathname)) {
+    return <Paywall onEntitled={markSubscribed} />;
+  }
 
   return (
     <>

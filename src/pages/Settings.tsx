@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useCrypto } from "@/hooks/useCrypto";
-import { ArrowLeft, Shield, Flame, Key, Timer, Info, Lock, AlertTriangle, LogOut, Database, HardDrive, Sparkles, Activity, ListChecks, Bug, Trash2, FileText } from "lucide-react";
+import { ArrowLeft, Shield, Flame, Key, Timer, Info, Lock, AlertTriangle, LogOut, Database, HardDrive, Sparkles, Activity, ListChecks, Bug, Trash2, FileText, CreditCard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
@@ -19,6 +19,7 @@ import NotificationSettings from "@/components/NotificationSettings";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Bell, User } from "lucide-react";
 import { isLockEnabled, disableLock, hasPanicPin, removePanicPin } from "@/store/lock";
+import { manageSubscription, paywallRequired } from "@/lib/subscription";
 import { isDebugConsoleEnabled, enableDebugConsole, disableDebugConsole } from "@/lib/debugConsole";
 import {
   AlertDialog,
@@ -399,6 +400,12 @@ const Settings = () => {
         >
           <Sparkles className="h-4 w-4 mr-2" /> Reset Wizard
         </Button>
+
+        {paywallRequired() && (
+          <Button variant="outline" className="w-full" size="lg" onClick={() => void manageSubscription()}>
+            <CreditCard className="h-4 w-4 mr-2" /> Manage Subscription
+          </Button>
+        )}
 
         <Button
           variant="outline"
