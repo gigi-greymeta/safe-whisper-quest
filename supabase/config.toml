@@ -1,3 +1,5 @@
 project_id = "gxstqpduuqmhcfgynhfr"
 [functions.delete-identity]
-verify_jwt = true
+# New sb_publishable_ keys are not JWTs; the function authorises via its own
+# proof of key possession (supabase/functions/_shared/deletionProof.ts).
+verify_jwt = false
