@@ -19,7 +19,7 @@ import NotificationSettings from "@/components/NotificationSettings";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Bell, User } from "lucide-react";
 import { isLockEnabled, disableLock, hasPanicPin, removePanicPin } from "@/store/lock";
-import { manageSubscription, paywallRequired } from "@/lib/subscription";
+import { useTier } from "@/hooks/useTier";
 import { isDebugConsoleEnabled, enableDebugConsole, disableDebugConsole } from "@/lib/debugConsole";
 import {
   AlertDialog,
@@ -36,6 +36,7 @@ import {
 const Settings = () => {
   const { state, setDisappearTimer, burnAllData, signOut } = useCrypto();
   const navigate = useNavigate();
+  const { tier, has } = useTier();
   const [lockEnabled, setLockEnabled] = useState(isLockEnabled());
   const [panicEnabled, setPanicEnabled] = useState(hasPanicPin());
   const [showPinSetup, setShowPinSetup] = useState(false);
@@ -93,6 +94,12 @@ const Settings = () => {
   };
 
   const handleTogglePanic = (checked: boolean) => {
+    // Setting up a panic PIN needs Premium. One set earlier keeps working after a downgrade,
+    // so someone relying on it under duress isn't left with a PIN that silently does nothing.
+    if (checked && !has("panicPin")) {
+      navigate("/upgrade");
+      return;
+    }
     if (checked) {
       setPinSetupMode("panic");
       setShowPinSetup(true);
@@ -247,6 +254,7 @@ const Settings = () => {
                     <p className="text-sm text-foreground flex items-center gap-1.5">
                       <AlertTriangle className="h-3.5 w-3.5 text-destructive" />
                       Sentry Mode
+                      {!has("panicPin") && <span className="text-[10px] uppercase tracking-wider text-primary">Premium</span>}
                     </p>
                     <p className="text-xs text-muted-foreground">
                       A decoy credential that silently wipes all data and shows a fresh install
@@ -401,11 +409,9 @@ const Settings = () => {
           <Sparkles className="h-4 w-4 mr-2" /> Reset Wizard
         </Button>
 
-        {paywallRequired() && (
-          <Button variant="outline" className="w-full" size="lg" onClick={() => void manageSubscription()}>
-            <CreditCard className="h-4 w-4 mr-2" /> Manage Subscription
-          </Button>
-        )}
+        <Button variant="outline" className="w-full" size="lg" onClick={() => navigate("/upgrade")}>
+          <CreditCard className="h-4 w-4 mr-2" /> Plan: {tier === "free" ? "Free" : tier === "standard" ? "Standard" : "Premium"}
+        </Button>
 
         <Button
           variant="outline"

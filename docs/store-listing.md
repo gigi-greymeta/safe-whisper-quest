@@ -1,8 +1,7 @@
 # Store listing copy
 
 Character counts are checked against each store's limit. Replace `YOUR_DOMAIN` before you publish.
-The description doesn't state a price, because the price changes after the first 20 subscribers
-and the stores show it anyway.
+The description doesn't state prices, because the stores show them in local currency anyway.
 
 ## Google Play
 
@@ -42,11 +41,11 @@ BUILT TO LEAVE NO TRACE
 LOCK IT DOWN
 • Screen lock with a PIN or passphrase, protected by Argon2id
 • Brute-force protection that locks out repeated wrong guesses
-• Sentry Mode: set a decoy passcode that silently wipes everything and opens a fresh, empty app
+• Sentry Mode (Premium): set a decoy passcode that silently wipes everything and opens a fresh, empty app
 • Burn All Data erases the app in one tap
 
 GROUPS AND ATTACHMENTS
-Create encrypted group chats and send photos and documents, protected the same way as your messages.
+Send photos and documents, protected the same way as your messages. Create encrypted group chats with Standard or Premium.
 
 NO TRACKING. EVER.
 No ads, no analytics and no third-party tracking SDKs. We don't sell or share your data. Our servers hold only what's needed to deliver your messages: your display name, your public key, and encrypted messages waiting to be delivered.
@@ -55,7 +54,7 @@ YOU'RE IN CONTROL
 Delete your account at any time from Settings. Your directory entry, inbox queues and pending messages are removed from our servers, and everything is erased from your device.
 
 SUBSCRIPTION
-Phantom requires an auto-renewing monthly subscription. The price is shown in the app before you buy. Payment is charged to your store account when you confirm. The subscription renews automatically unless you cancel at least 24 hours before the end of the current period, and you can manage or cancel it any time in your store account settings.
+Phantom is free for one-to-one messaging. Standard adds group chats, and Premium adds Sentry Mode. Both are auto-renewing monthly subscriptions. The price is shown in the app before you buy. Payment is charged to your store account when you confirm. The subscription renews automatically unless you cancel at least 24 hours before the end of the current period, and you can manage or cancel it any time in your store account settings.
 
 Terms of Service: https://YOUR_DOMAIN/legal/terms.html
 Privacy Policy: https://YOUR_DOMAIN/legal/privacy.html

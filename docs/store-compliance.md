@@ -22,48 +22,70 @@ If you add a permission, an SDK, or new server-side data, update all three.
 
 ## Subscription
 
-One auto-renewing monthly subscription, required in the iOS and Android apps only (the web
-build is free). Code: `src/lib/subscription.ts`, `src/components/Paywall.tsx`, gate in
-`src/App.tsx`. Billing goes through `@capgo/native-purchases`, which talks directly to StoreKit 2
-and Play Billing, with no third-party service. Entitlement is checked on the device only, so a
-user who tampers with the app could get round it. That was an accepted trade-off.
+Three plans. Free needs no purchase. Standard and Premium are auto-renewing monthly
+subscriptions in **one subscription group**, so moving between them is an upgrade or downgrade,
+not a second purchase. The web build can't take payments and always runs as Free; phone and
+tablet browsers are sent to the store apps instead (`src/components/GetTheApp.tsx`).
 
-| Setting | Value |
-| --- | --- |
-| Product ID (both stores) | `phantom_premium_monthly` |
-| Google Play base plan ID | `monthly`: auto-renewing, 1 month, **no free-trial or intro offer** |
-| Apple subscription group | `Phantom Premium`, duration 1 month, no introductory offer |
-| Launch price | $9.99/month |
+Code: plans and feature gates in `src/lib/subscription.ts` (`FEATURE_TIER`), current plan in
+`src/hooks/useTier.ts`, plan picker in `src/components/Paywall.tsx` (route `/upgrade`). Billing
+goes through `@capgo/native-purchases`, which talks directly to StoreKit 2 and Play Billing, with
+no third-party service. Entitlement is checked on the device only, so a user who tampers with the
+app could get round it. That was an accepted trade-off.
+
+| Plan | Price | Includes |
+| --- | --- | --- |
+| Free | $0 | One-to-one encrypted chat, delete after read, screen lock |
+| Standard | $3.99/month | Free + group chats |
+| Premium | $10.99/month | Standard + Sentry Mode panic PIN, scrambled messages, app disguise, voice calls with voice filter |
+
+Scrambled messages, app disguise and calls aren't built yet and show as "coming soon" on the plan
+picker. Apple may reject a subscription sold on features that don't exist yet, so either ship
+them before Premium goes live, or tell App Review in the notes exactly what Premium unlocks today.
+
+| Setting | Standard | Premium |
+| --- | --- | --- |
+| Product ID (both stores) | `phantom_standard_monthly` | `phantom_premium_monthly` |
+| Google Play base plan ID | `monthly` | `monthly` |
+| Apple subscription group | `Phantom` | `Phantom` |
+| Apple group level | 2 | 1 (highest) |
+
+All base plans and products: auto-renewing, 1 month, **no free trial or introductory offer**.
 
 **Apple (App Store Connect):** sign the Paid Apps Agreement and add banking and tax details
-first. Then go to Monetization → Subscriptions, create the group and the product, set the price,
-and add a display name, a description and a review screenshot of the paywall. Attach the
-subscription to the app version when you submit it. In Xcode, add the **In-App Purchase**
-capability under Signing & Capabilities.
+first. Then go to Monetization → Subscriptions, create the group and both products, set the prices,
+rank Premium above Standard in the group, and add a display name, a description and a review
+screenshot of the plan picker for each. Attach both subscriptions to the app version when you
+submit it. In Xcode, add the **In-App Purchase** capability under Signing & Capabilities. Apple
+handles upgrades (immediate, prorated refund) and downgrades (at renewal) inside the group.
 
 **Google (Play Console):** set up a payments profile. Then go to Monetize → Products →
-Subscriptions, create `phantom_premium_monthly` with base plan `monthly`, set the price and
-activate it. Upload a build that includes billing (internal testing is enough) before the
-product can be tested.
+Subscriptions, create both products, each with base plan `monthly`, set the prices and activate
+them. Upload a build that includes billing (internal testing is enough) before the products can
+be tested.
 
-**Founding price (first 20 subscribers):** neither store can cap a price by number of
-subscribers. Track the count in the store consoles. At 20, change the price to **$15.99** for
-**new subscribers only**:
-- Apple: Subscription → Subscription Prices → Plan a price change, and choose to **keep the
-  current price for existing subscribers**.
-- Google: Base plan → Edit price, and choose to keep existing subscribers on the legacy price.
-Existing subscribers keep $9.99 for as long as they stay subscribed. The app shows the store's
-price automatically.
+**Switching plans on Android:** the billing plugin can't pass Play's subscription-replacement
+parameters, so buying the second plan would bill for both. The plan picker tells Android
+subscribers to cancel their current plan in Google Play first. Fixing this properly needs
+replacement support added to the plugin.
 
-**Owner accounts (free):** use store offer codes. Don't use in-app codes or allowlists, which
-break App Store rule 3.1.1.
-- Apple: Subscription → Offer Codes, create a "Free" offer (the longest available duration) for
-  new and existing customers, and generate 2 one-time codes. Owners redeem them with **Redeem
-  Code** on the paywall. Issue new codes before they run out.
+**Downgrades:** Free users can still read existing groups but can't create groups or send to them.
+A panic PIN set while on Premium keeps working after a downgrade, so nobody relying on it under
+duress is left with a PIN that silently does nothing; setting a new one needs Premium.
+
+**Owner accounts (free, all features):** use store offer codes on **Premium**, which includes
+everything. Don't use in-app codes or allowlists, which break App Store rule 3.1.1.
+- Apple: Subscriptions → Phantom Premium → Offer Codes, create a "Free" offer (the longest
+  available duration) for new and existing customers, and generate one-time codes. Owners redeem
+  them with **Redeem Code** on the plan picker (Settings → Plan). Issue new codes before they run out.
 - Google: Monetize → Promo codes, create a subscription promo for `phantom_premium_monthly`.
   Owners redeem it at `play.google.com/redeem`, then tap **Restore Purchases**.
 - Before release, testers can use Apple Sandbox / TestFlight and Google license testers
   (Play Console → Settings → License testing), and aren't charged.
+
+**App Store link:** once the iOS listing exists, set `VITE_APP_STORE_URL` (for example
+`https://apps.apple.com/app/id1234567890`) in the web build's environment so the "Get the app"
+page links to it. Until then it shows "Coming soon to the App Store".
 
 **Store declarations:** purchase data stays with Apple and Google, and the app never sends it to
 the relay. So "Purchase history" is **not collected** in Apple App Privacy or the Play Data

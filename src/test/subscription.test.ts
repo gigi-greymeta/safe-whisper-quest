@@ -2,28 +2,54 @@ import { describe, it, expect, vi } from "vitest";
 
 vi.mock("@capgo/native-purchases", () => ({ NativePurchases: {}, PURCHASE_TYPE: { SUBS: "subs" } }));
 
-import { isEntitled, storeErrorMessage, SUBSCRIPTION_PRODUCT_ID as id } from "@/lib/subscription";
+import { hasFeature, tierFromPurchases, storeErrorMessage, PRODUCT_IDS } from "@/lib/subscription";
 
 const now = Date.parse("2026-11-21T00:00:00Z");
 const future = "2026-12-21T00:00:00Z";
 const past = "2026-11-01T00:00:00Z";
+const standard = PRODUCT_IDS.standard;
+const premium = PRODUCT_IDS.premium;
 
-describe("isEntitled", () => {
-  it("iOS: active or unexpired subscription unlocks", () => {
-    expect(isEntitled([{ productIdentifier: id, isActive: true }], "ios", now)).toBe(true);
-    expect(isEntitled([{ productIdentifier: id, expirationDate: future }], "ios", now)).toBe(true);
+describe("tierFromPurchases", () => {
+  it("iOS: active or unexpired subscription unlocks its plan", () => {
+    expect(tierFromPurchases([{ productIdentifier: premium, isActive: true }], "ios", now)).toBe("premium");
+    expect(tierFromPurchases([{ productIdentifier: standard, expirationDate: future }], "ios", now)).toBe("standard");
   });
 
-  it("iOS: expired, refunded or other products do not unlock", () => {
-    expect(isEntitled([{ productIdentifier: id, isActive: false, expirationDate: past }], "ios", now)).toBe(false);
-    expect(isEntitled([{ productIdentifier: id, isActive: true, revocationDate: past }], "ios", now)).toBe(false);
-    expect(isEntitled([{ productIdentifier: "something_else", isActive: true }], "ios", now)).toBe(false);
-    expect(isEntitled([], "ios", now)).toBe(false);
+  it("iOS: expired, refunded or other products leave the user on Free", () => {
+    expect(tierFromPurchases([{ productIdentifier: premium, isActive: false, expirationDate: past }], "ios", now)).toBe("free");
+    expect(tierFromPurchases([{ productIdentifier: premium, isActive: true, revocationDate: past }], "ios", now)).toBe("free");
+    expect(tierFromPurchases([{ productIdentifier: "something_else", isActive: true }], "ios", now)).toBe("free");
+    expect(tierFromPurchases([], "ios", now)).toBe("free");
   });
 
   it("Android: only purchased state unlocks", () => {
-    expect(isEntitled([{ productIdentifier: id, purchaseState: "1" }], "android", now)).toBe(true);
-    expect(isEntitled([{ productIdentifier: id, purchaseState: "2" }], "android", now)).toBe(false);
+    expect(tierFromPurchases([{ productIdentifier: standard, purchaseState: "1" }], "android", now)).toBe("standard");
+    expect(tierFromPurchases([{ productIdentifier: premium, purchaseState: "2" }], "android", now)).toBe("free");
+  });
+
+  it("picks the highest active plan when both are present", () => {
+    const both = [
+      { productIdentifier: standard, purchaseState: "1" },
+      { productIdentifier: premium, purchaseState: "1" },
+    ];
+    expect(tierFromPurchases(both, "android", now)).toBe("premium");
+  });
+});
+
+describe("hasFeature", () => {
+  it("Free has no group chats or Premium features", () => {
+    expect(hasFeature("free", "groupChats")).toBe(false);
+    expect(hasFeature("free", "panicPin")).toBe(false);
+  });
+  it("Standard adds group chats only", () => {
+    expect(hasFeature("standard", "groupChats")).toBe(true);
+    for (const f of ["calls", "voiceFilter", "scrambledMessages", "appDisguise", "panicPin"] as const)
+      expect(hasFeature("standard", f)).toBe(false);
+  });
+  it("Premium has everything", () => {
+    for (const f of ["groupChats", "calls", "voiceFilter", "scrambledMessages", "appDisguise", "panicPin"] as const)
+      expect(hasFeature("premium", f)).toBe(true);
   });
 });
 

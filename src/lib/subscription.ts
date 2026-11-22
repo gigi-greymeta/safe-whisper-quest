@@ -1,9 +1,12 @@
-// Store subscription (Apple App Store / Google Play) — native apps only.
+// Store subscriptions (Apple App Store / Google Play) — native apps only.
 //
-// The web build is free and never shows the paywall. On iOS/Android every
-// user needs an active auto-renewing subscription. Billing talks directly to
-// StoreKit / Play Billing via @capgo/native-purchases — no third-party
-// billing service, and purchase data is never sent to the Phantom relay.
+// Three plans: Free, Standard and Premium. Free needs no purchase; Standard and
+// Premium are auto-renewing monthly subscriptions in one store subscription
+// group, so moving between them is an upgrade/downgrade, not a second purchase.
+// Billing talks directly to StoreKit / Play Billing via @capgo/native-purchases —
+// no third-party billing service, and purchase data is never sent to the relay.
+//
+// The web build can't take payments, so it always runs as Free.
 //
 // Pricing lives in the store consoles, not here: the app always shows the
 // localized price the store returns. See docs/store-compliance.md.
@@ -11,39 +14,69 @@
 import { Capacitor } from "@capacitor/core";
 import { NativePurchases, PURCHASE_TYPE, type Product, type Transaction } from "@capgo/native-purchases";
 
-/** Subscription product ID — must be identical in App Store Connect and Play Console. */
-export const SUBSCRIPTION_PRODUCT_ID = "phantom_premium_monthly";
-/** Google Play base plan ID (auto-renewing, monthly, no free-trial offer). */
+export type Tier = "free" | "standard" | "premium";
+export type PaidTier = Exclude<Tier, "free">;
+
+/** Product IDs — must be identical in App Store Connect and Play Console. */
+export const PRODUCT_IDS: Record<PaidTier, string> = {
+  standard: "phantom_standard_monthly",
+  premium: "phantom_premium_monthly",
+};
+/** Google Play base plan ID used by both subscriptions (auto-renewing, monthly, no free trial). */
 export const ANDROID_BASE_PLAN_ID = "monthly";
 
-export const paywallRequired = (): boolean => Capacitor.isNativePlatform();
+const TIER_RANK: Record<Tier, number> = { free: 0, standard: 1, premium: 2 };
+
+/** Lowest plan that unlocks each gated feature. Delete-after-read is on every plan. */
+export const FEATURE_TIER = {
+  groupChats: "standard",
+  calls: "premium",
+  voiceFilter: "premium",
+  scrambledMessages: "premium",
+  appDisguise: "premium",
+  panicPin: "premium",
+} as const satisfies Record<string, Tier>;
+export type Feature = keyof typeof FEATURE_TIER;
+
+export const hasFeature = (tier: Tier, feature: Feature): boolean =>
+  TIER_RANK[tier] >= TIER_RANK[FEATURE_TIER[feature]];
+
+export const storeBillingAvailable = (): boolean => Capacitor.isNativePlatform();
+
+function isActivePurchase(p: Partial<Transaction>, platform: string, now: number): boolean {
+  if (p.revocationDate) return false;
+  if (platform === "android") return p.purchaseState === "1";
+  if (p.isActive === true) return true;
+  return !!p.expirationDate && Date.parse(p.expirationDate) > now;
+}
 
 /**
  * Pure entitlement check, kept separate from the plugin so it can be tested.
+ * Returns the highest plan with an active purchase.
  * - iOS: StoreKit reports isActive / expirationDate per subscription.
  * - Android: Play only returns current subscriptions; purchaseState "1" = purchased.
  */
-export function isEntitled(
+export function tierFromPurchases(
   purchases: readonly Partial<Transaction>[],
   platform: string,
   now: number = Date.now()
-): boolean {
-  return purchases.some((p) => {
-    if (p.productIdentifier !== SUBSCRIPTION_PRODUCT_ID) return false;
-    if (p.revocationDate) return false;
-    if (platform === "android") return p.purchaseState === "1";
-    if (p.isActive === true) return true;
-    return !!p.expirationDate && Date.parse(p.expirationDate) > now;
-  });
+): Tier {
+  let tier: Tier = "free";
+  for (const p of purchases) {
+    if (!isActivePurchase(p, platform, now)) continue;
+    if (p.productIdentifier === PRODUCT_IDS.premium) return "premium";
+    if (p.productIdentifier === PRODUCT_IDS.standard) tier = "standard";
+  }
+  return tier;
 }
 
-export async function hasActiveSubscription(): Promise<boolean> {
-  if (!paywallRequired()) return true;
+export async function getActiveTier(): Promise<Tier> {
+  if (!storeBillingAvailable()) return "free";
   const { purchases } = await NativePurchases.getPurchases({
     productType: PURCHASE_TYPE.SUBS,
     onlyCurrentEntitlements: true,
   });
-  return isEntitled(purchases, Capacitor.getPlatform());
+  return tierFromPurchases(purchases, Capacitor.getPlatform());
 }
 
 /**
@@ -62,30 +95,34 @@ export function storeErrorMessage(error: unknown): string {
   return detail ? `The store returned an error: ${detail}` : "Couldn't reach the store. Check your connection and try again.";
 }
 
-export async function getSubscriptionProduct(): Promise<Product | null> {
+/** Fetch the store listing for one paid plan. */
+export async function getPlanProduct(tier: PaidTier): Promise<Product | null> {
+  const productId = PRODUCT_IDS[tier];
   const { products } = await NativePurchases.getProducts({
-    productIdentifiers: [SUBSCRIPTION_PRODUCT_ID],
+    productIdentifiers: [productId],
     productType: PURCHASE_TYPE.SUBS,
   });
   if (Capacitor.getPlatform() === "android") {
+    // Play returns one entry per base plan; its identifier is the base plan ID.
     return products.find((p) => p.identifier === ANDROID_BASE_PLAN_ID) ?? products[0] ?? null;
   }
-  return products.find((p) => p.identifier === SUBSCRIPTION_PRODUCT_ID) ?? null;
+  return products.find((p) => p.identifier === productId) ?? null;
 }
 
-export async function purchaseSubscription(): Promise<boolean> {
+/** Buy (or switch to) a plan. Resolves to the plan now active. */
+export async function purchasePlan(tier: PaidTier): Promise<Tier> {
   await NativePurchases.purchaseProduct({
-    productIdentifier: SUBSCRIPTION_PRODUCT_ID,
+    productIdentifier: PRODUCT_IDS[tier],
     planIdentifier: ANDROID_BASE_PLAN_ID,
     productType: PURCHASE_TYPE.SUBS,
     quantity: 1,
   });
-  return hasActiveSubscription();
+  return getActiveTier();
 }
 
-export async function restoreSubscription(): Promise<boolean> {
+export async function restorePurchases(): Promise<Tier> {
   await NativePurchases.restorePurchases();
-  return hasActiveSubscription();
+  return getActiveTier();
 }
 
 export const manageSubscription = () => NativePurchases.manageSubscriptions();
@@ -95,7 +132,7 @@ export const canRedeemOfferCode = () => Capacitor.getPlatform() === "ios";
 export const redeemOfferCode = () => NativePurchases.presentOfferCodeRedeemSheet();
 
 export function onSubscriptionChange(cb: () => void): () => void {
-  if (!paywallRequired()) return () => {};
+  if (!storeBillingAvailable()) return () => {};
   const handle = NativePurchases.addListener("transactionUpdated", cb);
   return () => {
     void handle.then((h) => h.remove());

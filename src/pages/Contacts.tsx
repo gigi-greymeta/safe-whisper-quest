@@ -12,11 +12,13 @@ import ContactCard from "@/components/ContactCard";
 import RelayStatusIndicator from "@/components/RelayStatusIndicator";
 import { useToast } from "@/hooks/use-toast";
 import { checkPinnedKey } from "@/store/keyPinning";
+import { useTier } from "@/hooks/useTier";
 
 const Contacts = () => {
   const { state, addContact, addContactFromRegistry, removeContact, searchRegisteredUsers, createGroupChat } = useCrypto();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { has } = useTier();
   const [showAdd, setShowAdd] = useState(false);
   const [showCreateGroup, setShowCreateGroup] = useState(false);
   const [newName, setNewName] = useState("");
@@ -106,7 +108,7 @@ const Contacts = () => {
             <RelayStatusIndicator status={state.relayStatus} compact className="border-0 bg-transparent px-0 py-0" />
           </div>
         </div>
-        <Button size="icon" variant="outline" onClick={() => setShowCreateGroup(true)} title="Create group" aria-label="Create group" className="text-primary hover:text-primary">
+        <Button size="icon" variant="outline" onClick={() => (has("groupChats") ? setShowCreateGroup(true) : navigate("/upgrade"))} title="Create group" aria-label="Create group" className="text-primary hover:text-primary">
           <Users className="h-4 w-4" />
         </Button>
         <Button size="icon" variant="outline" onClick={() => setShowAdd(true)} aria-label="Add contact" className="text-primary hover:text-primary">

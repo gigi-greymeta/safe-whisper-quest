@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import MessageBubble from "@/components/MessageBubble";
 import ChatInput from "@/components/ChatInput";
 import { getGroup } from "@/store/groups";
+import { useTier } from "@/hooks/useTier";
 
 interface GroupMsg {
   id: string;
@@ -18,6 +19,7 @@ interface GroupMsg {
 const GroupChat = () => {
   const { groupId } = useParams<{ groupId: string }>();
   const { state, sendGroupMessage, getDecryptedGroupMessages, deleteGroupChat, onIncomingMessage } = useCrypto();
+  const { has } = useTier();
   const navigate = useNavigate();
   const [messages, setMessages] = useState<GroupMsg[]>([]);
   const [loading, setLoading] = useState(true);
@@ -123,8 +125,15 @@ const GroupChat = () => {
         )}
       </div>
 
-      {/* Input */}
-      <ChatInput onSend={handleSend} />
+      {/* Input — Free plan can read existing groups but not send */}
+      {has("groupChats") ? (
+        <ChatInput onSend={handleSend} />
+      ) : (
+        <div className="border-t bg-card/50 p-4 flex items-center justify-between gap-3 pb-[max(1rem,env(safe-area-inset-bottom))]">
+          <p className="text-xs text-muted-foreground">Group chats need the Standard or Premium plan.</p>
+          <Button size="sm" onClick={() => navigate("/upgrade")}>See plans</Button>
+        </div>
+      )}
     </div>
   );
 };
