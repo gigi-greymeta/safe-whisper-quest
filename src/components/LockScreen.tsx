@@ -9,10 +9,12 @@ import LogoMark from "@/components/LogoMark";
 
 interface LockScreenProps {
   onUnlock: (credential: string) => void | boolean | Promise<void | boolean>;
-  onPanicWipe?: () => void;
+  onPanicWipe?: (credential: string) => void;
+  /** Hide the Phantom name and logo (app disguise is on). */
+  plain?: boolean;
 }
 
-const LockScreen = ({ onUnlock, onPanicWipe }: LockScreenProps) => {
+const LockScreen = ({ onUnlock, onPanicWipe, plain }: LockScreenProps) => {
   const [pin, setPin] = useState("");
   const [passphrase, setPassphrase] = useState("");
   const [error, setError] = useState(false);
@@ -39,7 +41,7 @@ const LockScreen = ({ onUnlock, onPanicWipe }: LockScreenProps) => {
       if (hasPanicPin()) {
         const isPanic = await verifyPanicPin(value);
         if (isPanic) {
-          onPanicWipe?.();
+          onPanicWipe?.(value);
           return;
         }
       }
@@ -77,8 +79,8 @@ const LockScreen = ({ onUnlock, onPanicWipe }: LockScreenProps) => {
     return (
       <div className="dark fixed inset-0 z-[100] flex flex-col items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-3 mb-8">
-          <LogoMark size={72} />
-          <h1 className="text-xl font-semibold text-foreground">Phantom Locked</h1>
+          {plain ? <Lock className="h-12 w-12 text-muted-foreground" /> : <LogoMark size={72} />}
+          <h1 className="text-xl font-semibold text-foreground">{plain ? "Locked" : "Phantom Locked"}</h1>
           <p className="text-sm text-muted-foreground">Enter your passphrase to unlock</p>
         </div>
 
@@ -151,8 +153,8 @@ const LockScreen = ({ onUnlock, onPanicWipe }: LockScreenProps) => {
   return (
     <div className="dark fixed inset-0 z-[100] flex flex-col items-center justify-center bg-background">
       <div className="flex flex-col items-center gap-3 mb-6">
-        <LogoMark size={72} />
-        <h1 className="text-xl font-semibold text-foreground">Phantom Locked</h1>
+        {plain ? <Lock className="h-12 w-12 text-muted-foreground" /> : <LogoMark size={72} />}
+        <h1 className="text-xl font-semibold text-foreground">{plain ? "Locked" : "Phantom Locked"}</h1>
         <p className="text-sm text-muted-foreground">Enter your PIN to unlock</p>
       </div>
 

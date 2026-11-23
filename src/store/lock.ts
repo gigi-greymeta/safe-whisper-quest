@@ -9,6 +9,9 @@ const LOCK_ENABLED_KEY = "phantom_lock_enabled";
 const LAST_UNLOCK_KEY = "phantom_last_unlock";
 const PANIC_HASH_KEY = "phantom_panic_hash";
 const PANIC_SALT_KEY = "phantom_panic_salt";
+const PANIC_WIPE_KEY = "phantom_panic_wipe_key";
+const NOTEPAD_HASH_KEY = "phantom_notepad_pin_hash";
+const NOTEPAD_SALT_KEY = "phantom_notepad_pin_salt";
 const FAILED_ATTEMPTS_KEY = "phantom_failed_attempts";
 const LOCKOUT_UNTIL_KEY = "phantom_lockout_until";
 
@@ -170,13 +173,68 @@ export async function verifyPin(pin: string): Promise<boolean> {
   return valid;
 }
 
+/**
+ * Check a candidate against the app PIN without counting a failure toward the
+ * lockout. For the decoy notepad, where every new note title is checked and most
+ * are just ordinary notes.
+ */
+export async function matchesPinQuietly(pin: string): Promise<boolean> {
+  const storedHash = localStorage.getItem(PIN_HASH_KEY);
+  const storedSalt = localStorage.getItem(PIN_SALT_KEY);
+  if (!storedHash || !storedSalt) return false;
+  return (await deriveKey(pin, base64ToUint8(storedSalt))) === storedHash;
+}
+
 // ─── Panic PIN ──────────────────────────────────────────────────────
 
-export async function setPanicPin(pin: string): Promise<void> {
+export interface PanicWipeIdentity {
+  fingerprint: string;
+  privateKey: JsonWebKey;
+}
+
+/**
+ * Set the Sentry Mode decoy credential. When `identity` is given, a copy of its
+ * private key is sealed under the panic credential, so a wipe triggered at the
+ * lock screen (vault still locked) can still prove ownership to the server and
+ * delete the account there. The copy is erased with everything else on wipe.
+ */
+export async function setPanicPin(pin: string, identity?: PanicWipeIdentity): Promise<void> {
   const salt = generateSalt();
   const hashed = await deriveKey(pin, salt);
   localStorage.setItem(PANIC_SALT_KEY, uint8ToBase64(salt));
   localStorage.setItem(PANIC_HASH_KEY, hashed);
+  localStorage.removeItem(PANIC_WIPE_KEY);
+  if (identity) {
+    const keySalt = generateSalt();
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+    const key = await panicSealKey(pin, keySalt);
+    const sealed = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, new TextEncoder().encode(JSON.stringify(identity)));
+    localStorage.setItem(
+      PANIC_WIPE_KEY,
+      JSON.stringify({ salt: uint8ToBase64(keySalt), iv: uint8ToBase64(iv), data: uint8ToBase64(new Uint8Array(sealed)) })
+    );
+  }
+}
+
+/** AES key for the sealed identity: a separate KDF run (own salt) from the stored verifier hash. */
+async function panicSealKey(pin: string, salt: Uint8Array): Promise<CryptoKey> {
+  const derived = await deriveKey(pin, salt);
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(derived));
+  return crypto.subtle.importKey("raw", digest, "AES-GCM", false, ["encrypt", "decrypt"]);
+}
+
+/** Recover the sealed identity with the panic credential; null if none was sealed. */
+export async function openPanicWipeIdentity(pin: string): Promise<PanicWipeIdentity | null> {
+  const raw = localStorage.getItem(PANIC_WIPE_KEY);
+  if (!raw) return null;
+  try {
+    const { salt, iv, data } = JSON.parse(raw) as { salt: string; iv: string; data: string };
+    const key = await panicSealKey(pin, base64ToUint8(salt));
+    const plain = await crypto.subtle.decrypt({ name: "AES-GCM", iv: base64ToUint8(iv) }, key, base64ToUint8(data));
+    return JSON.parse(new TextDecoder().decode(plain)) as PanicWipeIdentity;
+  } catch {
+    return null;
+  }
 }
 
 export async function verifyPanicPin(pin: string): Promise<boolean> {
@@ -195,6 +253,32 @@ export function hasPanicPin(): boolean {
 export function removePanicPin(): void {
   localStorage.removeItem(PANIC_HASH_KEY);
   localStorage.removeItem(PANIC_SALT_KEY);
+  secureEraseKey(PANIC_WIPE_KEY);
+}
+
+// ─── Notepad PIN (optional, separate from the app PIN) ──────────────
+
+export async function setNotepadPin(pin: string): Promise<void> {
+  const salt = generateSalt();
+  const hashed = await deriveKey(pin, salt);
+  localStorage.setItem(NOTEPAD_SALT_KEY, uint8ToBase64(salt));
+  localStorage.setItem(NOTEPAD_HASH_KEY, hashed);
+}
+
+export async function verifyNotepadPin(pin: string): Promise<boolean> {
+  const storedHash = localStorage.getItem(NOTEPAD_HASH_KEY);
+  const storedSalt = localStorage.getItem(NOTEPAD_SALT_KEY);
+  if (!storedHash || !storedSalt) return false;
+  return (await deriveKey(pin, base64ToUint8(storedSalt))) === storedHash;
+}
+
+export function hasNotepadPin(): boolean {
+  return !!localStorage.getItem(NOTEPAD_HASH_KEY);
+}
+
+export function removeNotepadPin(): void {
+  secureEraseKey(NOTEPAD_HASH_KEY);
+  secureEraseKey(NOTEPAD_SALT_KEY);
 }
 
 // ─── Secure Erase ───────────────────────────────────────────────────

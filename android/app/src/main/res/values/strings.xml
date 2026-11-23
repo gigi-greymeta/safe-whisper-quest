@@ -4,4 +4,7 @@
     <string name="title_activity_main">Phantom</string>
     <string name="package_name">au.com.greymeta.phantom</string>
     <string name="custom_url_scheme">au.com.greymeta.phantom</string>
+    <string name="disguise_label_calculator">Calculator</string>
+    <string name="disguise_label_notes">Notes</string>
+    <string name="disguise_label_weather">Weather</string>
 </resources>

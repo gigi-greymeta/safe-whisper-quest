@@ -30,11 +30,16 @@ const TIER_RANK: Record<Tier, number> = { free: 0, standard: 1, premium: 2 };
 /** Lowest plan that unlocks each gated feature. Delete-after-read is on every plan. */
 export const FEATURE_TIER = {
   groupChats: "standard",
+  notepad: "standard",
+  voiceMessages: "standard",
   calls: "premium",
   voiceFilter: "premium",
   scrambledMessages: "premium",
   appDisguise: "premium",
   panicPin: "premium",
+  notepadDecoy: "premium",
+  pinDrops: "premium",
+  vanishingGroups: "premium",
 } as const satisfies Record<string, Tier>;
 export type Feature = keyof typeof FEATURE_TIER;
 

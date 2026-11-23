@@ -23,6 +23,8 @@ export interface StoredMessage {
   status: "sent" | "delivered" | "read";
   disappearAt?: number;
   hmacVerified?: boolean | null;
+  /** Failed attempts to unscramble a scrambled message (it is deleted at the limit). */
+  unlockFailures?: number;
 }
 
 function getDisappearMs(timer: DisappearTimer): number | null {
@@ -109,6 +111,25 @@ export async function saveMessage(
 export function deleteMessagesForContact(contactId: string): void {
   const messages = getAllMessages().filter((m) => m.contactId !== contactId);
   localStorage.setItem(MESSAGES_KEY, JSON.stringify(messages));
+}
+
+export function deleteMessage(id: string): void {
+  const messages = getAllMessages().filter((m) => m.id !== id);
+  localStorage.setItem(MESSAGES_KEY, JSON.stringify(messages));
+}
+
+/** Count one failed unscramble attempt; returns the new total. */
+export function recordUnlockFailure(id: string): number {
+  const messages = getAllMessages();
+  const msg = messages.find((m) => m.id === id);
+  if (!msg) return 0;
+  msg.unlockFailures = (msg.unlockFailures ?? 0) + 1;
+  localStorage.setItem(MESSAGES_KEY, JSON.stringify(messages));
+  return msg.unlockFailures;
+}
+
+export function getUnlockFailures(id: string): number {
+  return getAllMessages().find((m) => m.id === id)?.unlockFailures ?? 0;
 }
 
 export function clearAllMessages(): void {

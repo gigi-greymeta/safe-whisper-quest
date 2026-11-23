@@ -56,7 +56,7 @@ const DeleteAccount = () => {
       <div className="flex items-center gap-3 p-4 border-b bg-card/50 backdrop-blur-sm">
         {step === "confirm" && (
           <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
-            <ArrowLeft className="h-5 w-5" />
+            <ArrowLeft className="h-5 w-5 text-primary" />
           </Button>
         )}
         <h1 className="text-lg font-semibold text-foreground">Delete Account</h1>

@@ -7,9 +7,16 @@
 import { useSyncExternalStore } from "react";
 import { getActiveTier, hasFeature, onSubscriptionChange, storeBillingAvailable, type Feature, type Tier } from "@/lib/subscription";
 
+/**
+ * Test builds (`npm run build:testing`) unlock every feature without a purchase, so
+ * testers can try everything. Never upload a test build anywhere but a testing track.
+ */
+export const TEST_UNLOCK_ALL = import.meta.env.VITE_TEST_UNLOCK_ALL === "true";
+
 const TIER_CACHE_KEY = "phantom_tier";
 
 function readCachedTier(): Tier {
+  if (TEST_UNLOCK_ALL) return "premium";
   if (!storeBillingAvailable()) return "free";
   try {
     const cached = localStorage.getItem(TIER_CACHE_KEY);
@@ -24,7 +31,7 @@ let currentTier: Tier = readCachedTier();
 const listeners = new Set<() => void>();
 
 export function setTier(tier: Tier): void {
-  if (tier === currentTier) return;
+  if (TEST_UNLOCK_ALL || tier === currentTier) return;
   currentTier = tier;
   try {
     if (tier === "free") localStorage.removeItem(TIER_CACHE_KEY);
@@ -45,7 +52,7 @@ export async function refreshTier(): Promise<void> {
 
 /** Start watching the store. Call once at app start; returns a cleanup function. */
 export function watchTier(): () => void {
-  if (!storeBillingAvailable()) return () => {};
+  if (TEST_UNLOCK_ALL || !storeBillingAvailable()) return () => {};
   void refreshTier();
   const onVisible = () => document.visibilityState === "visible" && void refreshTier();
   document.addEventListener("visibilitychange", onVisible);

@@ -3,6 +3,7 @@ import { Shield, Lock, Delete, AlertTriangle, KeyRound } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { setPin, setPanicPin, type AuthMode } from "@/store/lock";
 import { initVault } from "@/store/vault";
+import { getIdentity } from "@/store/identity";
 import { mirrorPhantomStorageToIDB } from "@/store/appPersist";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -132,7 +133,11 @@ const PinSetup = ({ onComplete, onSkip, mode = "main" }: PinSetupProps) => {
 
   const saveAndComplete = async (value: string, aMode: AuthMode) => {
     if (isPanic) {
-      await setPanicPin(value);
+      const identity = getIdentity();
+      await setPanicPin(
+        value,
+        identity ? { fingerprint: identity.publicKeyFingerprint, privateKey: identity.keyPair.privateKey } : undefined
+      );
     } else {
       await setPin(value, aMode);
       await initVault(value);

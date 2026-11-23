@@ -2,6 +2,12 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Phantom uses the microphone only during voice calls and while you record a voice message.</string>
+	<key>NSFaceIDUsageDescription</key>
+	<string>Phantom uses Face ID to unscramble protected messages and open your locked notes.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Phantom uses your location only when you drop a pin to share in a chat.</string>
   <key>CAPACITOR_DEBUG</key>
 	<string>$(CAPACITOR_DEBUG)</string>
 	<key>CFBundleDevelopmentRegion</key>

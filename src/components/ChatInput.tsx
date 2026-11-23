@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { Send, Lock, Paperclip, X, Image } from "lucide-react";
+import { Send, Lock, Paperclip, X, Image, EyeOff, MapPin, Mic } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
@@ -11,9 +11,16 @@ interface ChatInputProps {
   onSendFile?: (file: { name: string; type: string; data: string }) => void;
   onTyping?: () => void;
   disabled?: boolean;
+  /** Scrambled-message toggle; hidden when onToggleScramble isn't given. */
+  scramble?: boolean;
+  onToggleScramble?: () => void;
+  /** Pin drop button; hidden when not given. */
+  onDropPin?: () => void;
+  /** Voice message button; hidden when not given. */
+  onVoice?: () => void;
 }
 
-const ChatInput = ({ onSend, onSendFile, onTyping, disabled }: ChatInputProps) => {
+const ChatInput = ({ onSend, onSendFile, onTyping, disabled, scramble, onToggleScramble, onDropPin, onVoice }: ChatInputProps) => {
   const [text, setText] = useState("");
   const [attachment, setAttachment] = useState<{ name: string; type: string; data: string } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -115,11 +122,35 @@ const ChatInput = ({ onSend, onSendFile, onTyping, disabled }: ChatInputProps) =
             </Button>
           </>
         )}
+        {onVoice && (
+          <Button variant="ghost" size="icon" className="h-10 w-10 shrink-0" onClick={onVoice} disabled={disabled} aria-label="Voice message" title="Voice message">
+            <Mic className="h-4 w-4" />
+          </Button>
+        )}
+        {onDropPin && (
+          <Button variant="ghost" size="icon" className="h-10 w-10 shrink-0" onClick={onDropPin} disabled={disabled} aria-label="Drop a pin" title="Drop a pin">
+            <MapPin className="h-4 w-4" />
+          </Button>
+        )}
+        {onToggleScramble && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className={cn("h-10 w-10 shrink-0", scramble && "text-primary bg-primary/10")}
+            onClick={onToggleScramble}
+            disabled={disabled}
+            aria-pressed={!!scramble}
+            aria-label={scramble ? "Scrambling on" : "Scrambling off"}
+            title={scramble ? "Scrambling on: the recipient must unlock each message" : "Scramble messages"}
+          >
+            <EyeOff className="h-4 w-4" />
+          </Button>
+        )}
         <textarea
           value={text}
           onChange={handleChange}
           onKeyDown={handleKeyDown}
-          placeholder={attachment ? "Add a caption..." : "Encrypted message..."}
+          placeholder={attachment ? "Add a caption..." : scramble ? "Scrambled message..." : "Encrypted message..."}
           disabled={disabled}
           rows={1}
           className={cn(

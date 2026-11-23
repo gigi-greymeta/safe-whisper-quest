@@ -1,5 +1,8 @@
 import { cn } from "@/lib/utils";
-import { Check, CheckCheck, ShieldCheck, ShieldAlert, Shield, Download, Cloud, CloudOff, Loader2 } from "lucide-react";
+import { Check, CheckCheck, ShieldCheck, ShieldAlert, Shield, Download, Cloud, CloudOff, Loader2, Lock, MapPin } from "lucide-react";
+import { formatCoords, mapsUrl, parsePinDrop } from "@/lib/location";
+import { parseVoiceMessage } from "@/lib/voiceMessage";
+import VoiceNotePlayer from "@/components/VoiceNotePlayer";
 import { useState } from "react";
 import {
   Tooltip,
@@ -19,6 +22,9 @@ interface MessageBubbleProps {
   deliveredToRelay?: boolean;
   /** True if the peer has acknowledged it (read receipt). */
   receivedByPeer?: boolean;
+  /** Scrambled message: shows a lock, and the bubble becomes tappable via onTap. */
+  scrambled?: boolean;
+  onTap?: () => void;
 }
 
 const MessageBubble = ({
@@ -30,6 +36,8 @@ const MessageBubble = ({
   hmacVerified,
   deliveredToRelay = true,
   receivedByPeer,
+  scrambled,
+  onTap,
 }: MessageBubbleProps) => {
   const time = new Date(timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   const [imageExpanded, setImageExpanded] = useState(false);
@@ -44,6 +52,9 @@ const MessageBubble = ({
   } catch {
     // Not a file attachment
   }
+
+  const pinDrop = fileAttachment ? null : parsePinDrop(text);
+  const voice = fileAttachment || pinDrop ? null : parseVoiceMessage(text);
 
   const handleDownload = () => {
     if (!fileAttachment) return;
@@ -63,14 +74,39 @@ const MessageBubble = ({
   return (
     <div className={cn("flex w-full mb-2", fromMe ? "justify-end" : "justify-start")}>
       <div
+        role={onTap ? "button" : undefined}
+        tabIndex={onTap ? 0 : undefined}
+        onClick={onTap}
+        onKeyDown={onTap ? (e) => (e.key === "Enter" || e.key === " ") && onTap() : undefined}
         className={cn(
           "max-w-[80%] rounded-2xl px-4 py-2.5 shadow-sm",
+          onTap && "cursor-pointer select-none",
           fromMe
             ? "bg-primary text-primary-foreground rounded-br-md"
             : "bg-card border rounded-bl-md text-card-foreground"
         )}
       >
-        {fileAttachment ? (
+        {voice ? (
+          <VoiceNotePlayer voice={voice} />
+        ) : pinDrop ? (
+          <a
+            href={mapsUrl(pinDrop)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={cn(
+              "flex items-start gap-2.5 rounded-lg border px-3 py-2 min-w-[200px]",
+              fromMe ? "border-primary-foreground/20" : "border-border"
+            )}
+          >
+            <MapPin className="h-5 w-5 shrink-0 mt-0.5" />
+            <div className="min-w-0">
+              <p className="text-sm font-medium break-words">{pinDrop.label || "Dropped pin"}</p>
+              <p className="text-[11px] opacity-70 tabular-nums">{formatCoords(pinDrop)}</p>
+              {pinDrop.accuracy !== undefined && <p className="text-[10px] opacity-60">Accurate to about {pinDrop.accuracy} m</p>}
+              <p className="text-[11px] underline mt-1">Open in Maps</p>
+            </div>
+          </a>
+        ) : fileAttachment ? (
           <div className="space-y-1.5">
             {fileAttachment.type.startsWith("image/") ? (
               <button onClick={() => setImageExpanded(!imageExpanded)} className="block">
@@ -114,6 +150,7 @@ const MessageBubble = ({
           {disappearing && (
             <span className="text-[10px] opacity-60">⏱</span>
           )}
+          {scrambled && <Lock className="h-2.5 w-2.5 opacity-60" aria-label="Scrambled" />}
           {/* HMAC verification indicator for received messages */}
           {!fromMe && hmacVerified === true && (
             <ShieldCheck className="h-2.5 w-2.5 text-emerald-400" />

@@ -21,6 +21,8 @@ const SENSITIVE_KEYS = [
   "phantom_disappear_timer",
   "phantom_seen_relay_ids",
   "phantom_ratchet_stats",
+  "phantom_secure_notes",
+  "phantom_vanishing_groups",
 ];
 
 let vaultKey: CryptoKey | null = null;

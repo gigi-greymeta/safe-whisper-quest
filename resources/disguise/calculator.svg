@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <defs><linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#14B8A6"/><stop offset="1" stop-color="#0F766E"/></linearGradient></defs>
+  <rect id="background" width="1024" height="1024" fill="url(#bg)"/>
+  <g id="glyph">
+    <rect x="292" y="232" width="440" height="560" rx="56" fill="#FFFFFF"/>
+    <rect x="342" y="282" width="340" height="120" rx="20" fill="#134E4A"/>
+    <g fill="#5EEAD4">
+      <rect x="342" y="442" width="92" height="92" rx="20"/><rect x="466" y="442" width="92" height="92" rx="20"/><rect x="590" y="442" width="92" height="92" rx="20" fill="#F59E0B"/>
+      <rect x="342" y="566" width="92" height="92" rx="20"/><rect x="466" y="566" width="92" height="92" rx="20"/><rect x="590" y="566" width="92" height="92" rx="20" fill="#F59E0B"/>
+      <rect x="342" y="690" width="216" height="62" rx="20"/><rect x="590" y="690" width="92" height="62" rx="20" fill="#F59E0B"/>
+    </g>
+  </g>
+</svg>

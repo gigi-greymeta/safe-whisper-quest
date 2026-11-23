@@ -6,7 +6,7 @@ import { ArrowLeft, Check, Loader2, Ticket } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { useTier, setTier } from "@/hooks/useTier";
+import { useTier, setTier, TEST_UNLOCK_ALL } from "@/hooks/useTier";
 import {
   canRedeemOfferCode,
   getPlanProduct,
@@ -40,17 +40,21 @@ const PLANS: PlanInfo[] = [
   {
     tier: "standard",
     name: "Standard",
-    features: [{ label: "Everything in Free" }, { label: "Encrypted group chats" }],
+    features: [{ label: "Everything in Free" }, { label: "Encrypted group chats" }, { label: "Locked notepad (fingerprint, face or PIN)" }, { label: "Voice messages" }],
   },
   {
     tier: "premium",
     name: "Premium",
     features: [
       { label: "Everything in Standard" },
-      { label: "Sentry Mode panic PIN" },
-      { label: "Scrambled messages", soon: true },
-      { label: "App disguise", soon: true },
-      { label: "Voice calls with voice filter", soon: true },
+      { label: "Sentry Mode panic PIN that wipes the app and your account" },
+      { label: "Scrambled messages that need your fingerprint, face or PIN" },
+      { label: "App disguise: Calculator, Notes or Weather" },
+      { label: "Voice calls with voice filter" },
+      { label: "Voice filter on voice messages" },
+      { label: "Decoy notes list in front of your locked notepad" },
+      { label: "Pin drops: share a location in chats and groups" },
+      { label: "Vanishing groups: messages, photos and videos wiped after 48 hours" },
     ],
   },
 ];
@@ -117,13 +121,19 @@ const Paywall = () => {
     <div className="dark flex flex-col min-h-screen bg-background">
       <div className="flex items-center gap-3 p-4 border-b bg-card/50 backdrop-blur-sm pt-[max(1rem,env(safe-area-inset-top))]">
         <Button variant="ghost" size="icon" onClick={() => navigate(-1)} aria-label="Back" className="text-foreground hover:text-foreground">
-          <ArrowLeft className="h-5 w-5" />
+          <ArrowLeft className="h-5 w-5 text-primary" />
         </Button>
         <h1 className="text-lg font-semibold text-foreground">Plans</h1>
       </div>
 
       <div className="flex-1 overflow-y-auto p-4 max-w-md w-full mx-auto flex flex-col gap-4">
-        {!storeBillingAvailable() && (
+        {TEST_UNLOCK_ALL && (
+          <p className="text-sm text-center rounded-lg border border-amber-500/50 bg-amber-500/10 text-amber-300 p-3">
+            Test build: every Premium feature is unlocked without a purchase.
+          </p>
+        )}
+
+        {!TEST_UNLOCK_ALL && !storeBillingAvailable() && (
           <p className="text-sm text-muted-foreground text-center">
             The web version runs on the Free plan. Standard and Premium are available in the Phantom app for iPhone and Android.
           </p>

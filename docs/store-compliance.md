@@ -91,6 +91,64 @@ page links to it. Until then it shows "Coming soon to the App Store".
 the relay. So "Purchase history" is **not collected** in Apple App Privacy or the Play Data
 safety form.
 
+## Premium features
+
+| Feature | Code | Notes |
+| --- | --- | --- |
+| Scrambled messages | `src/lib/scramble.ts`, `src/components/UnscrambleDialog.tsx` | Sending needs Premium; anyone can unscramble. Biometrics via `@capgo/capacitor-native-biometric`, or the app PIN. 3 failures delete the message on that device. The panic PIN works at this prompt too. |
+| Sentry Mode panic PIN | `src/store/lock.ts`, `handlePanicWipe` in `src/App.tsx` | Deletes the account on the server (up to 4 s), then wipes the device: app data, every IndexedDB database, Cache Storage, service workers, cookies, and natively the WebView cache/storage/cookies plus the app cache folders (`DeviceWipePlugin` on Android and iOS; `src/lib/deviceWipe.ts`). The Settings → Emergency Panic Wipe button clears caches too. A copy of the identity key is sealed under the panic PIN so this works from the lock screen. Panic PINs set before this release only delete the server account when entered while the app is unlocked; setting the PIN again fixes that. |
+| App disguise | `src/lib/disguise.ts`, `AppDisguisePlugin` (Android `java/…/AppDisguisePlugin.java`, iOS `ios/App/App/AppDisguisePlugin.swift`), `src/components/CalculatorDecoy.tsx` | Android switches launcher activity-aliases (icon and name). iOS uses alternate app icons (icon only; iOS shows its own notice). Calculator needs Screen Lock with a PIN: the app opens to a working calculator, PIN then = unlocks. A disguise stays on after a downgrade or panic wipe. Artwork in `resources/disguise/`, regenerate with `scripts/generate-disguise-icons.mjs`. |
+| Locked notepad | `src/pages/Notepad.tsx`, `src/components/notes/`, `src/store/notes.ts` | **Standard** (the decoy list is Premium). Home → Notes. Unlock with fingerprint/face and/or PIN (app PIN or a separate notes PIN), chosen in notes settings. Decoy list (Premium, on by default, can be turned off): Notes opens with no PIN to a random set of everyday notes (picked once from a pool of 24, then kept; "Shuffle decoy notes" in settings re-picks). Adding a new note titled with the PIN plays a character-scramble animation that turns the decoy list into the real notes; the PIN note is never saved, other titles become ordinary decoy notes, and the panic PIN as a title wipes the app. Titles that look like a PIN count toward the lockout. Real notes are encrypted with a key from the identity and stored in the PIN vault; they lock when the app goes to the background. With the Notes disguise on, the locked app opens to the decoy list, and a new note titled with the app PIN unlocks the app. After a downgrade, existing notes can still be opened and deleted, but new ones need a paid plan, and the decoy list switches off. |
+| Vanishing groups | `src/contexts/VanishingGroupsContext.tsx`, `src/lib/vanishing/`, `src/pages/VanishingGroup*.tsx`, `supabase/migrations/20261123000000_vanishing_groups.sql` | Home → Vanishing groups. Creating needs Premium; anyone invited can join. See "Vanishing groups" below. |
+| Pin drops | `src/lib/location.ts`, `src/components/PinDropDialog.tsx`, card in `MessageBubble.tsx` | One-to-one and group chats. Current GPS location, or coordinates / a Google or Apple Maps link pasted in, plus an optional label. No in-app map (map tiles would leak the location to a tile provider); "Open in Maps" hands off to the maps app on tap. Sending needs Premium; anyone can open a pin. |
+| Voice messages | `src/lib/voiceMessage.ts`, `src/components/VoiceRecorder.tsx`, `VoiceNotePlayer.tsx` | Mic button in one-to-one chats, groups and vanishing groups. Premium users record through the call voice filter (Off / Deep / High / Robot, changeable mid-recording), so only filtered audio exists. Up to 2 minutes; in chats it's capped at 230 KB to fit the relay (raised to 512 KB per message by `20261123010000_relay_payload_512kb.sql`); vanishing groups send it as encrypted media. Played from memory only. **Standard** can send; the voice filter while recording is Premium; anyone can play. |
+| Voice calls and voice filter | `src/contexts/CallContext.tsx`, `src/lib/calls/` | Starting a call needs Premium; anyone can answer. Setup messages go end-to-end encrypted over the relay. Calls only ring while the app is open (no push service). Filters run in an AudioWorklet on the caller's device. |
+
+## Vanishing groups
+
+Group chats whose messages, photos and videos are wiped from the server 48 hours after posting.
+The creator is the admin: they invite contacts, remove members and can delete the group.
+
+How it's secured:
+- **Server sees only ciphertext under a random 256-bit address.** No group name, member list or
+  sender is stored server-side. The tables have RLS on with no policies; the app can only call
+  the `vg_*` functions, which act on the one address supplied (no listing or scanning).
+- **Expiry is set by the server** (`now() + 48 hours`), not the client. Expired rows are never
+  returned, and `purge_expired_vanishing_groups` deletes them every 5 minutes.
+- **Membership never touches the server.** Invites, joins and the admin's group state (address,
+  keys, member list) go as hidden control messages over the existing pairwise Double Ratchet
+  channels. Members only accept state from the admin, only if it's newer and still lists them.
+- **Daily key ratchet.** Each day's key is a one-way hash of the previous day's; devices drop
+  keys older than 2 days, so a seized phone can't decrypt older traffic.
+- **Every message is signed** with the sender's per-group ECDSA key, distributed by the admin.
+  Forged, tampered or ex-member messages are dropped. Payloads are padded to 512-byte blocks.
+- **Photos and videos** (up to 20 MB) get their own random key, are uploaded as encrypted
+  512 KiB chunks bound to their position, expire with the messages, and are only ever decrypted
+  into memory on tap. Nothing is saved to the device. Android blocks screenshots (FLAG_SECURE).
+- **Removing a member** gives the group a new address and new keys and wipes the old address
+  (and its history) from the server. **Deleting the group** wipes everything at once. Both need
+  the admin's secret token, which only the admin's device holds (the server keeps its hash).
+- **Panic wipe** also wipes every group the device administers.
+
+Limits: messages arrive by polling every 3 seconds while a group is open (no push). A new
+member can read the current day's messages from before they joined. If the admin's phone is
+lost, the group can't be deleted early or managed, but its content still expires after 48
+hours. **Deploy:** `supabase db push` applies the migration and schedules the purge job.
+
+**Call servers:** set `VITE_TURN_URLS`, `VITE_TURN_USERNAME` and `VITE_TURN_CREDENTIAL` in the
+build environment to route every call through a TURN relay, so neither person sees the other's
+IP address. Without TURN, calls use STUN (`VITE_STUN_URLS`, default Cloudflare's public server),
+connect directly, and fail on some strict networks. Name the STUN/TURN provider in the privacy
+policy's call section once chosen. TURN credentials built into the app can be extracted; use a
+provider that issues short-lived credentials before relying on it at scale.
+
+**App Review notes for Premium:** say that app disguise changes the home-screen icon to the
+user's choice of Calculator, Notes or Weather (original artwork, not imitating another app), and
+that with the Calculator disguise the app opens to a working calculator; typing the app PIN and
+pressing = opens Phantom. With the Notes disguise (or the notepad's decoy list), adding a new
+note whose title is the PIN unlocks it. Give reviewers a test PIN. Apple rejects hidden features that aren't
+disclosed (Guideline 2.3.1).
+
 ## Policy URLs
 
 | Purpose | URL |
@@ -108,11 +166,23 @@ Privacy** links. The identity creation screen links to the terms and privacy pol
 | Platform | Permission | Why | File |
 | --- | --- | --- | --- |
 | Android | `INTERNET` | Relay | `android/app/src/main/AndroidManifest.xml` |
+| Android | `RECORD_AUDIO`, `MODIFY_AUDIO_SETTINGS` | Voice calls (Premium) and voice messages (Standard) | `android/app/src/main/AndroidManifest.xml` |
+| Android | `USE_BIOMETRIC` (merged from androidx.biometric) | Unscrambling messages | plugin manifest |
+| iOS | `NSMicrophoneUsageDescription` | Voice calls (Premium) and voice messages (Standard) | `ios/App/App/Info.plist` |
+| iOS | `NSFaceIDUsageDescription` | Unscrambling messages, opening locked notes | `ios/App/App/Info.plist` |
+| Android | `ACCESS_COARSE_LOCATION`, `ACCESS_FINE_LOCATION` | Pin drops (Premium), only on tap | `android/app/src/main/AndroidManifest.xml` |
+| iOS | `NSLocationWhenInUseUsageDescription` | Pin drops (Premium), only on tap | `ios/App/App/Info.plist` |
 | iOS | `NSCameraUsageDescription` | The WKWebView file picker offers "Take Photo" for image attachments. Without this key the app crashes. | `ios/App/App/Info.plist` |
 | iOS | `NSPhotoLibraryUsageDescription` | Choosing a photo to attach | `ios/App/App/Info.plist` |
 
-No microphone, location, contacts, notifications or storage permissions. Android photo
-attachments go through the system picker, which needs no permission.
+No location, contacts, notifications or storage permissions. Android photo attachments go
+through the system picker, which needs no permission. The microphone is opened only during a
+call. Call audio is end-to-end encrypted between devices and never reaches the developer, so it
+is **not collected** for Apple App Privacy or the Play Data safety form. Biometric checks run
+on the device only and are not collected either. Pin drops are end-to-end encrypted between
+users, so location is **not collected** either (Google exempts end-to-end encrypted data;
+Apple's "collected" means sent off the device in a form the developer can access). Notepad
+notes never leave the device.
 
 Hardening in the native projects:
 - Android: `allowBackup=false`, plus `data_extraction_rules.xml`, which keeps keys out of

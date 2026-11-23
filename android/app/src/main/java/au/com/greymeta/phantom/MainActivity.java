@@ -7,6 +7,8 @@ import com.getcapacitor.BridgeActivity;
 public class MainActivity extends BridgeActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        registerPlugin(AppDisguisePlugin.class);
+        registerPlugin(DeviceWipePlugin.class);
         super.onCreate(savedInstanceState);
         // Block screenshots, screen recording and the recent-apps thumbnail so
         // decrypted messages and keys are never captured outside the app.

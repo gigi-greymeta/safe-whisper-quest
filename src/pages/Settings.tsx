@@ -16,6 +16,8 @@ import AdminConfigExport from "@/components/AdminConfigExport";
 import StorageHealth from "@/components/StorageHealth";
 import MessagingReadinessChecklist from "@/components/MessagingReadinessChecklist";
 import NotificationSettings from "@/components/NotificationSettings";
+import DisguiseSettings from "@/components/DisguiseSettings";
+import { wipeDeviceCaches } from "@/lib/deviceWipe";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Bell, User } from "lucide-react";
 import { isLockEnabled, disableLock, hasPanicPin, removePanicPin } from "@/store/lock";
@@ -71,9 +73,14 @@ const Settings = () => {
     navigate("/");
   };
 
-  const handlePanicWipe = () => {
+  const handlePanicWipe = async () => {
     localStorage.clear();
     disableLock();
+    try {
+      await wipeDeviceCaches();
+    } catch {
+      // Best effort: the reload still happens.
+    }
     window.location.reload();
   };
 
@@ -131,7 +138,7 @@ const Settings = () => {
       {/* Header */}
       <div className="flex items-center gap-3 p-4 border-b bg-card/50 backdrop-blur-sm">
         <Button variant="ghost" size="icon" onClick={() => navigate("/")}>
-          <ArrowLeft className="h-5 w-5" />
+          <ArrowLeft className="h-5 w-5 text-primary" />
         </Button>
         <h1 className="text-lg font-semibold text-foreground">Settings</h1>
       </div>
@@ -257,18 +264,20 @@ const Settings = () => {
                       {!has("panicPin") && <span className="text-[10px] uppercase tracking-wider text-primary">Premium</span>}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      A decoy credential that silently wipes all data and shows a fresh install
+                      A decoy credential that silently wipes all data, deletes your account from the server and shows a fresh install
                     </p>
                   </div>
                   <Switch checked={panicEnabled} onCheckedChange={handleTogglePanic} />
                 </div>
                 <p className="text-[10px] text-muted-foreground">
-                  When the sentry credential is entered at the lock screen, all local data is securely erased and the app reloads to its first-launch state — no error, no warning.
+                  au.com.invoice.greymetatry credential is entered at the lock screen, all local data is securely erased and the app reloads to its first-launch state — no error, no warning.
                 </p>
               </>
             )}
           </CardContent>
         </Card>
+
+        <DisguiseSettings />
 
         <Card>
           <CardHeader className="pb-3">

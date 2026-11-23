@@ -7,6 +7,10 @@ import MessageBubble from "@/components/MessageBubble";
 import ChatInput from "@/components/ChatInput";
 import { getGroup } from "@/store/groups";
 import { useTier } from "@/hooks/useTier";
+import PinDropDialog from "@/components/PinDropDialog";
+import { wrapPinDrop } from "@/lib/location";
+import VoiceRecorder from "@/components/VoiceRecorder";
+import { blobToBase64, MAX_CHAT_VOICE_BYTES, wrapVoiceMessage } from "@/lib/voiceMessage";
 
 interface GroupMsg {
   id: string;
@@ -20,6 +24,8 @@ const GroupChat = () => {
   const { groupId } = useParams<{ groupId: string }>();
   const { state, sendGroupMessage, getDecryptedGroupMessages, deleteGroupChat, onIncomingMessage } = useCrypto();
   const { has } = useTier();
+  const [pinDropOpen, setPinDropOpen] = useState(false);
+  const [voiceOpen, setVoiceOpen] = useState(false);
   const navigate = useNavigate();
   const [messages, setMessages] = useState<GroupMsg[]>([]);
   const [loading, setLoading] = useState(true);
@@ -77,7 +83,7 @@ const GroupChat = () => {
       {/* Header */}
       <div className="flex items-center gap-3 p-3 border-b bg-card/50 backdrop-blur-sm">
         <Button variant="ghost" size="icon" onClick={() => navigate("/contacts")}>
-          <ArrowLeft className="h-5 w-5" />
+          <ArrowLeft className="h-5 w-5 text-primary" />
         </Button>
         <div className="flex-1 min-w-0">
           <p className="font-semibold text-sm text-foreground truncate">{group.name}</p>
@@ -127,13 +133,27 @@ const GroupChat = () => {
 
       {/* Input — Free plan can read existing groups but not send */}
       {has("groupChats") ? (
-        <ChatInput onSend={handleSend} />
+        <ChatInput
+          onSend={handleSend}
+          onDropPin={() => (has("pinDrops") ? setPinDropOpen(true) : navigate("/upgrade"))}
+          onVoice={() => (has("voiceMessages") ? setVoiceOpen(true) : navigate("/upgrade"))}
+        />
       ) : (
         <div className="border-t bg-card/50 p-4 flex items-center justify-between gap-3 pb-[max(1rem,env(safe-area-inset-bottom))]">
           <p className="text-xs text-muted-foreground">Group chats need the Standard or Premium plan.</p>
           <Button size="sm" onClick={() => navigate("/upgrade")}>See plans</Button>
         </div>
       )}
+      <VoiceRecorder
+        open={voiceOpen}
+        allowFilter={has("voiceFilter")}
+        maxBytes={MAX_CHAT_VOICE_BYTES}
+        onClose={() => setVoiceOpen(false)}
+        onSend={async (blob, durationMs) => {
+          await handleSend(wrapVoiceMessage({ mime: blob.type, data: await blobToBase64(blob), durationMs }));
+        }}
+      />
+      <PinDropDialog open={pinDropOpen} onClose={() => setPinDropOpen(false)} onSend={(pin) => void handleSend(wrapPinDrop(pin))} />
     </div>
   );
 };

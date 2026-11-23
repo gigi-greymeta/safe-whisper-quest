@@ -12,6 +12,11 @@ export default defineConfig({
     },
   },
   plugins: [react()],
+  build: {
+    // AudioWorklet modules load like scripts, and the CSP (script-src 'self') blocks
+    // data: URLs, so worklets must be emitted as real files rather than inlined.
+    assetsInlineLimit: (file) => (file.includes(".worklet.") ? false : undefined),
+  },
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),

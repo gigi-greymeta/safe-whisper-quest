@@ -40,6 +40,8 @@
 </table>
 <p>Choose a display name that you are comfortable being public. It does not need to be your real name.</p>
 
+<p><strong>Vanishing groups (Premium).</strong> Messages, photos and videos in a vanishing group are stored on our servers only in encrypted form, under a random group address, for 48 hours from when they are posted, then permanently deleted (our clean-up runs every five minutes, and expired items are never served even before then). The group admin can delete everything sooner by deleting the group, and removing a member deletes the group's earlier messages. Our servers never learn a group's name, who is in it, or who sent what: that information is end-to-end encrypted between members. Group messages are not stored on your device.</p>
+
 <h2>5. Data we do not collect</h2>
 <ul>
 <li>No phone number, email address, password or real name is needed.</li>
@@ -51,13 +53,17 @@
 
 <h2>6. Network and infrastructure data</h2>
 <p>Our relay runs on Supabase, a cloud database and hosting provider. Like any internet service, Supabase receives your device's IP address and basic request information (such as time and request type) when the app connects, and may keep it in short-lived operational logs for security and reliability. We do not use this information to build profiles or to identify you, and we do not link it to your directory entry. Data may be processed outside Australia, depending on where our Supabase project is hosted.</p>
+<p><strong>Voice calls.</strong> To connect a call through home routers and mobile networks, the app contacts a network-discovery (STUN) or relay (TURN) server run by a service provider, which sees your IP address while the call is set up or relayed but never the call audio, which stays encrypted. When calls are not relayed, the two devices connect directly and each can see the other's IP address. Call setup messages are end-to-end encrypted and travel through our relay like any other message.</p>
 
 <h2>7. Device permissions</h2>
 <ul>
 <li><strong>Internet:</strong> to send and receive encrypted messages.</li>
 <li><strong>Camera and photo library (optional):</strong> only when you choose to attach a photo to a message. The photo is encrypted on your device before it is sent. You can refuse this permission and keep using the app.</li>
+<li><strong>Microphone (optional):</strong> only during a voice call you start or answer (Premium), or while you record a voice message (Standard and Premium). Call audio is encrypted between the two devices and is never recorded or stored. Voice messages are end-to-end encrypted like any other message and expire from our relay with them. If you use a voice filter (Premium), your voice is changed on your device before it is recorded or sent, so others only ever receive the filtered voice.</li>
+<li><strong>Face ID, fingerprint or face unlock (optional):</strong> to unscramble a protected message or open your locked notes. The check happens entirely on your device; we never receive biometric data.</li>
+<li><strong>Location (optional, Premium):</strong> read only when you tap "Drop a pin" and choose to share where you are. The pin is end-to-end encrypted to the people in that chat, so we can't see it. The app never tracks your location in the background. "Open in Maps" passes a pin's coordinates to your maps app (Apple Maps or Google Maps) only when you tap it, under that provider's privacy policy.</li>
 </ul>
-<p>Phantom does not use your microphone, location or contacts.</p>
+<p>Notes in the locked notepad are encrypted and stay on your device; they are never sent to our servers. Phantom does not use your contacts.</p>
 
 <h2>8. Subscriptions and payments</h2>
 <p>Phantom has a Free plan and paid Standard and Premium plans, sold in the iOS and Android apps. Subscriptions are sold and billed by Apple (App Store) or Google (Google Play) under their own privacy policies. We never receive your name, payment card or billing address. The app asks the store on your device which plan you have. That status is not sent to our servers or linked to your Phantom identity. The store console shows us aggregate sales information and limited transaction records, such as country, price and date, which we use only for accounting, refunds and legal obligations.</p>

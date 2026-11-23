@@ -18,13 +18,65 @@
             android:theme="@style/AppTheme.NoActionBarLaunch"
             android:launchMode="singleTask"
             android:exported="true">
+        </activity>
 
+        <!-- Launcher entries. Exactly one is enabled at a time; AppDisguisePlugin switches
+             between them so the home-screen icon and name can be disguised (Premium). -->
+        <activity-alias
+            android:name=".LauncherDefault"
+            android:targetActivity=".MainActivity"
+            android:icon="@mipmap/ic_launcher"
+            android:roundIcon="@mipmap/ic_launcher_round"
+            android:label="@string/title_activity_main"
+            android:enabled="true"
+            android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+        </activity-alias>
 
-        </activity>
+        <activity-alias
+            android:name=".LauncherCalculator"
+            android:targetActivity=".MainActivity"
+            android:icon="@mipmap/ic_disguise_calculator"
+            android:roundIcon="@mipmap/ic_disguise_calculator"
+            android:label="@string/disguise_label_calculator"
+            android:enabled="false"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name=".LauncherNotes"
+            android:targetActivity=".MainActivity"
+            android:icon="@mipmap/ic_disguise_notes"
+            android:roundIcon="@mipmap/ic_disguise_notes"
+            android:label="@string/disguise_label_notes"
+            android:enabled="false"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name=".LauncherWeather"
+            android:targetActivity=".MainActivity"
+            android:icon="@mipmap/ic_disguise_weather"
+            android:roundIcon="@mipmap/ic_disguise_weather"
+            android:label="@string/disguise_label_weather"
+            android:enabled="false"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
 
         <provider
             android:name="androidx.core.content.FileProvider"
@@ -38,10 +90,16 @@
     </application>
 
     <!-- Permissions
-         INTERNET is the only permission Phantom needs. Photo attachments use the
-         system file/photo picker, which needs no permission. Do not add CAMERA,
-         storage, contacts, location or microphone permissions without updating
-         the privacy policy and the Play Data safety form. -->
+         INTERNET: the relay. RECORD_AUDIO + MODIFY_AUDIO_SETTINGS: voice calls and voice
+         messages (Premium); the microphone is only open during a call or a recording. ACCESS_*_LOCATION: pin drops
+         (Premium), read only when the person taps "Drop a pin". USE_BIOMETRIC is merged in by the biometric
+         plugin's androidx.biometric dependency (unscrambling messages). Photo attachments use the
+         system picker, which needs no permission. Do not add CAMERA, storage or contacts
+         without updating the privacy policy and the Play Data safety form. -->
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
 </manifest>

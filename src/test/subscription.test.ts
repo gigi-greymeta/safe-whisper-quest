@@ -42,13 +42,17 @@ describe("hasFeature", () => {
     expect(hasFeature("free", "groupChats")).toBe(false);
     expect(hasFeature("free", "panicPin")).toBe(false);
   });
-  it("Standard adds group chats only", () => {
+  it("Standard adds group chats and the basic notepad", () => {
     expect(hasFeature("standard", "groupChats")).toBe(true);
-    for (const f of ["calls", "voiceFilter", "scrambledMessages", "appDisguise", "panicPin"] as const)
+    expect(hasFeature("standard", "notepad")).toBe(true);
+    expect(hasFeature("free", "notepad")).toBe(false);
+    expect(hasFeature("standard", "voiceMessages")).toBe(true);
+    expect(hasFeature("free", "voiceMessages")).toBe(false);
+    for (const f of ["calls", "voiceFilter", "scrambledMessages", "appDisguise", "panicPin", "notepadDecoy", "pinDrops", "vanishingGroups"] as const)
       expect(hasFeature("standard", f)).toBe(false);
   });
   it("Premium has everything", () => {
-    for (const f of ["groupChats", "calls", "voiceFilter", "scrambledMessages", "appDisguise", "panicPin"] as const)
+    for (const f of ["groupChats", "notepad", "calls", "voiceFilter", "scrambledMessages", "appDisguise", "panicPin", "notepadDecoy", "pinDrops", "vanishingGroups", "voiceMessages"] as const)
       expect(hasFeature("premium", f)).toBe(true);
   });
 });

@@ -54,7 +54,7 @@ import {
   type OutboxEntry,
 } from "@/store/outboxPersist";
 import { CryptoContext } from "./cryptoContext";
-import type { CryptoState, IncomingMessageHandler } from "./cryptoTypes";
+import type { CallSignal, CallSignalHandler, ControlMessageHandler, CryptoState, IncomingMessageHandler } from "./cryptoTypes";
 
 // ─── State ──────────────────────────────────────────────────────────
 
@@ -162,13 +162,15 @@ function isAliceRole(myFingerprint: string, peerFingerprint: string): boolean {
   return myFingerprint < peerFingerprint;
 }
 
-function getHiddenControlType(plaintext: string): "read_receipt" | "typing" | "ratchet_reset" | null {
+function getHiddenControlType(plaintext: string): "read_receipt" | "typing" | "ratchet_reset" | "call" | "vg" | null {
   try {
     const parsed = JSON.parse(plaintext);
+    if (typeof parsed?.__type === "string" && parsed.__type.startsWith("vg_")) return "vg";
     if (
       parsed?.__type === "read_receipt" ||
       parsed?.__type === "typing" ||
-      parsed?.__type === "ratchet_reset"
+      parsed?.__type === "ratchet_reset" ||
+      parsed?.__type === "call"
     ) {
       return parsed.__type;
     }
@@ -232,6 +234,8 @@ export function CryptoProvider({ children }: { children: React.ReactNode }) {
   const relayTeardownInProgressRef = useRef(false);
   const relayConnectIdRef = useRef(0);
   const incomingHandlersRef = useRef<Set<IncomingMessageHandler>>(new Set());
+  const callSignalHandlersRef = useRef<Set<CallSignalHandler>>(new Set());
+  const controlHandlersRef = useRef<Set<ControlMessageHandler>>(new Set());
   // Throttle ratchet-resync signals to at most one per contact per 30s so a
   // bombardment of un-decryptable ratchet messages from a desynced peer
   // doesn't produce a reset-signal storm on the relay.
@@ -1017,6 +1021,20 @@ export function CryptoProvider({ children }: { children: React.ReactNode }) {
     return searchUsers(query);
   }, []);
 
+  const onControlMessage = useCallback((handler: ControlMessageHandler) => {
+    controlHandlersRef.current.add(handler);
+    return () => {
+      controlHandlersRef.current.delete(handler);
+    };
+  }, []);
+
+  const onCallSignal = useCallback((handler: CallSignalHandler) => {
+    callSignalHandlersRef.current.add(handler);
+    return () => {
+      callSignalHandlersRef.current.delete(handler);
+    };
+  }, []);
+
   const onIncomingMessage = useCallback((handler: IncomingMessageHandler) => {
     incomingHandlersRef.current.add(handler);
     return () => {
@@ -1139,6 +1157,14 @@ export function CryptoProvider({ children }: { children: React.ReactNode }) {
             setTimeout(() => dispatch({ type: "SET_TYPING", contactId: contact.id, typing: false }), 4000);
             return;
           }
+          if (parsed?.__type === "call") {
+            callSignalHandlersRef.current.forEach((h) => h(contact.id, parsed as CallSignal));
+            return;
+          }
+          if (typeof parsed?.__type === "string" && parsed.__type.startsWith("vg_")) {
+            controlHandlersRef.current.forEach((h) => h(contact.id, contact.publicKeyFingerprint, parsed));
+            return;
+          }
           if (parsed?.__type === "group_message") {
             // Store as a group message
             const sharedKey2 = await deriveSharedKey(
@@ -1241,6 +1267,16 @@ export function CryptoProvider({ children }: { children: React.ReactNode }) {
           setTimeout(() => dispatch({ type: "SET_TYPING", contactId: contact.id, typing: false }), 4000);
           return;
         }
+        if (controlType === "vg") {
+          const body = JSON.parse(plaintext);
+          controlHandlersRef.current.forEach((h) => h(contact.id, contact.publicKeyFingerprint, body));
+          return;
+        }
+        if (controlType === "call") {
+          const signal = JSON.parse(plaintext) as CallSignal;
+          callSignalHandlersRef.current.forEach((h) => h(contact.id, signal));
+          return;
+        }
         if (controlType === "ratchet_reset") {
           // Peer told us their ratchet state for us is gone — drop ours so
           // the next outbound message re-bootstraps a fresh Double Ratchet
@@ -1323,21 +1359,13 @@ export function CryptoProvider({ children }: { children: React.ReactNode }) {
     }
   }, [resolveIdentity, state.contacts, discoverOutboxQueue]);
 
-  /**
-   * Send an encrypted typing indicator to a contact through pairwise queues.
-   * Throttled: only sends if we haven't sent one in the last 3 seconds.
-   */
-  const lastTypingSentRef = useRef<Record<string, number>>({});
-  const sendTypingIndicator = useCallback(async (contactId: string) => {
-    const now = Date.now();
-    if (lastTypingSentRef.current[contactId] && now - lastTypingSentRef.current[contactId] < 3000) return;
-    lastTypingSentRef.current[contactId] = now;
-
+  /** Send a control message (never stored or shown as a chat bubble) to one contact. */
+  const sendControlMessage = useCallback(async (contactId: string, body: Record<string, unknown>) => {
     const identity = await resolveIdentity();
     const contact = state.contacts.find((c) => c.id === contactId) ?? getContacts().find((c) => c.id === contactId);
     if (!identity || !contact || !contact.outboxQueueId) return;
 
-    const typingPayload = JSON.stringify({ __type: "typing", timestamp: now });
+    const controlPayload = JSON.stringify(body);
 
     let ratchetState = getRatchetState(contactId);
     if (!ratchetState) {
@@ -1349,7 +1377,7 @@ export function CryptoProvider({ children }: { children: React.ReactNode }) {
     let iv: string;
 
     if (ratchetState.sendChainKey) {
-      const { newState, message } = await ratchetEncrypt(ratchetState, typingPayload);
+      const { newState, message } = await ratchetEncrypt(ratchetState, controlPayload);
       saveRatchetState(contactId, newState);
       payload = JSON.stringify(message);
       iv = message.iv;
@@ -1357,7 +1385,7 @@ export function CryptoProvider({ children }: { children: React.ReactNode }) {
       const privateKey = await importPrivateKey(identity.keyPair.privateKey);
       const publicKey = await importPublicKey(contact.publicKey);
       const sharedKey = await deriveSharedKey(privateKey, publicKey);
-      const encrypted = await encryptMessage(typingPayload, sharedKey);
+      const encrypted = await encryptMessage(controlPayload, sharedKey);
       payload = encrypted.ciphertext;
       iv = encrypted.iv;
     }
@@ -1368,6 +1396,24 @@ export function CryptoProvider({ children }: { children: React.ReactNode }) {
 
     await sendRelayMessage(contact.outboxQueueId, payload, iv, hmacSig);
   }, [resolveIdentity, state.contacts]);
+
+  /**
+   * Send an encrypted typing indicator to a contact through pairwise queues.
+   * Throttled: only sends if we haven't sent one in the last 3 seconds.
+   */
+  const lastTypingSentRef = useRef<Record<string, number>>({});
+  const sendTypingIndicator = useCallback(async (contactId: string) => {
+    const now = Date.now();
+    if (lastTypingSentRef.current[contactId] && now - lastTypingSentRef.current[contactId] < 3000) return;
+    lastTypingSentRef.current[contactId] = now;
+    await sendControlMessage(contactId, { __type: "typing", timestamp: now });
+  }, [sendControlMessage]);
+
+  /** Call setup and teardown (offer / answer / end), end-to-end encrypted like messages. */
+  const sendCallSignal = useCallback(
+    (contactId: string, signal: Omit<CallSignal, "__type">) => sendControlMessage(contactId, { __type: "call", ...signal }),
+    [sendControlMessage]
+  );
 
   // ─── Group Chat Functions ────────────────────────────────────────────
 
@@ -1521,6 +1567,10 @@ export function CryptoProvider({ children }: { children: React.ReactNode }) {
         processIncomingMessages,
         sendReadReceipt,
         sendTypingIndicator,
+        sendCallSignal,
+        onCallSignal,
+        sendControl: sendControlMessage,
+        onControlMessage,
         createGroupChat,
         sendGroupMessage,
         getDecryptedGroupMessages,

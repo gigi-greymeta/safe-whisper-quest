@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useCrypto } from "@/hooks/useCrypto";
-import { ArrowLeft, Shield, Trash2, ShieldCheck, BadgeCheck, AlertTriangle, X, RefreshCw } from "lucide-react";
+import { ArrowLeft, Shield, Trash2, ShieldCheck, BadgeCheck, AlertTriangle, X, RefreshCw, Phone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import MessageBubble from "@/components/MessageBubble";
 import ChatInput from "@/components/ChatInput";
@@ -15,6 +15,18 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import LogoMark from "@/components/LogoMark";
 import RelayStatusIndicator from "@/components/RelayStatusIndicator";
 import { useToast } from "@/hooks/use-toast";
+import { useTier } from "@/hooks/useTier";
+import UnscrambleDialog from "@/components/UnscrambleDialog";
+import { useCall } from "@/contexts/CallContext";
+import PinDropDialog from "@/components/PinDropDialog";
+import { wrapPinDrop } from "@/lib/location";
+import VoiceRecorder from "@/components/VoiceRecorder";
+import { blobToBase64, MAX_CHAT_VOICE_BYTES, wrapVoiceMessage } from "@/lib/voiceMessage";
+import { getScrambleSendPref, MAX_UNLOCK_FAILURES, parseScrambled, scrambleDisplay, setScrambleSendPref, wrapScrambled } from "@/lib/scramble";
+import { deleteMessage, getUnlockFailures, recordUnlockFailure } from "@/store/messages";
+
+/** How long an unscrambled message stays readable before it scrambles again. */
+const REVEAL_MS = 30_000;
 
 interface DecryptedMsg {
   id: string;
@@ -45,6 +57,48 @@ const Chat = () => {
   const [keyMismatch, setKeyMismatch] = useState(false);
   const [mismatchDismissed, setMismatchDismissed] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const { has } = useTier();
+  const { startCall } = useCall();
+  const canScramble = has("scrambledMessages");
+  const [scramble, setScramble] = useState(() => getScrambleSendPref());
+  const [revealed, setRevealed] = useState<Set<string>>(new Set());
+  const [unscrambling, setUnscrambling] = useState<string | null>(null);
+  const [pinDropOpen, setPinDropOpen] = useState(false);
+  const [voiceOpen, setVoiceOpen] = useState(false);
+
+  const toggleScramble = () => {
+    setScramble((on) => {
+      setScrambleSendPref(!on);
+      return !on;
+    });
+  };
+
+  const reveal = (id: string) => {
+    setRevealed((prev) => new Set(prev).add(id));
+    setTimeout(() => {
+      setRevealed((prev) => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+    }, REVEAL_MS);
+  };
+
+  // Leaving the app scrambles everything again.
+  useEffect(() => {
+    const onHide = () => document.visibilityState === "hidden" && setRevealed(new Set());
+    document.addEventListener("visibilitychange", onHide);
+    return () => document.removeEventListener("visibilitychange", onHide);
+  }, []);
+
+  const handleUnscrambleFailure = (id: string) => {
+    if (recordUnlockFailure(id) >= MAX_UNLOCK_FAILURES) {
+      deleteMessage(id);
+      setUnscrambling(null);
+      setMessages((prev) => prev.filter((m) => m.id !== id));
+      toast({ title: "Message deleted", description: "Too many failed attempts to unscramble it." });
+    }
+  };
 
   const contact = state.contacts.find((entry) => entry.id === contactId);
 
@@ -99,7 +153,7 @@ const Chat = () => {
   const handleSend = async (text: string) => {
     if (!contactId) return;
     try {
-      await sendMessage(contactId, text);
+      await sendMessage(contactId, canScramble && scramble ? wrapScrambled(text) : text);
       await loadMessages();
     } catch (err) {
       console.error("[Chat.handleSend] failed:", err);
@@ -109,6 +163,21 @@ const Chat = () => {
           err instanceof Error
             ? err.message
             : "Unknown error reaching the relay. Check your connection and try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  /** Send an envelope (pin drop) as-is, never scrambled. */
+  const sendRaw = async (payload: string, failTitle: string) => {
+    if (!contactId) return;
+    try {
+      await sendMessage(contactId, payload);
+      await loadMessages();
+    } catch (err) {
+      toast({
+        title: failTitle,
+        description: err instanceof Error ? err.message : "Could not reach the relay.",
         variant: "destructive",
       });
     }
@@ -171,7 +240,7 @@ const Chat = () => {
             aria-label="Back to contacts"
             className="text-foreground hover:text-primary shrink-0"
           >
-            <ArrowLeft className="h-5 w-5" />
+            <ArrowLeft className="h-5 w-5 text-primary" />
           </Button>
           <LogoMark size={32} />
           <div className="flex-1 min-w-0">
@@ -182,6 +251,16 @@ const Chat = () => {
               )}
             </div>
           </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => (has("calls") ? void startCall(contactId!) : navigate("/upgrade"))}
+            title="Voice call"
+            aria-label="Voice call"
+            className="text-primary hover:text-primary/80 shrink-0"
+          >
+            <Phone className="h-5 w-5" />
+          </Button>
           <Button
             variant="ghost"
             size="icon"
@@ -292,23 +371,66 @@ const Chat = () => {
             </p>
           </div>
         ) : (
-          messages.map((msg) => (
-            <MessageBubble
-              key={msg.id}
-              text={msg.text}
-              fromMe={msg.fromMe}
-              timestamp={msg.timestamp}
-              status={msg.status}
-              disappearing={state.disappearTimer !== "off"}
-              hmacVerified={msg.hmacVerified}
-            />
-          ))
+          messages.map((msg) => {
+            const hidden = parseScrambled(msg.text);
+            const locked = hidden !== null && !msg.fromMe && !revealed.has(msg.id);
+            return (
+              <MessageBubble
+                key={msg.id}
+                text={hidden === null ? msg.text : locked ? scrambleDisplay(hidden, msg.id) : hidden}
+                fromMe={msg.fromMe}
+                timestamp={msg.timestamp}
+                status={msg.status}
+                disappearing={state.disappearTimer !== "off"}
+                hmacVerified={msg.hmacVerified}
+                scrambled={hidden !== null}
+                onTap={locked ? () => setUnscrambling(msg.id) : undefined}
+              />
+            );
+          })
         )}
         {isContactTyping && <TypingIndicator name={contact.displayName} />}
       </div>
 
       {/* Input */}
-      <ChatInput onSend={handleSend} onSendFile={handleSendFile} onTyping={handleTyping} />
+      <ChatInput
+        onSend={handleSend}
+        onSendFile={handleSendFile}
+        onTyping={handleTyping}
+        scramble={canScramble && scramble}
+        onToggleScramble={canScramble ? toggleScramble : undefined}
+        onDropPin={() => (has("pinDrops") ? setPinDropOpen(true) : navigate("/upgrade"))}
+        onVoice={() => (has("voiceMessages") ? setVoiceOpen(true) : navigate("/upgrade"))}
+      />
+
+      <VoiceRecorder
+        open={voiceOpen}
+        allowFilter={has("voiceFilter")}
+        maxBytes={MAX_CHAT_VOICE_BYTES}
+        onClose={() => setVoiceOpen(false)}
+        onSend={async (blob, durationMs) => {
+          if (!contactId) return;
+          await sendMessage(contactId, wrapVoiceMessage({ mime: blob.type, data: await blobToBase64(blob), durationMs }));
+          await loadMessages();
+        }}
+      />
+
+      <PinDropDialog
+        open={pinDropOpen}
+        onClose={() => setPinDropOpen(false)}
+        onSend={(pin) => void sendRaw(wrapPinDrop(pin), "Pin not sent")}
+      />
+
+      <UnscrambleDialog
+        open={unscrambling !== null}
+        failures={unscrambling ? getUnlockFailures(unscrambling) : 0}
+        onClose={() => setUnscrambling(null)}
+        onSuccess={() => {
+          if (unscrambling) reveal(unscrambling);
+          setUnscrambling(null);
+        }}
+        onFailure={() => unscrambling && handleUnscrambleFailure(unscrambling)}
+      />
     </div>
   );
 };

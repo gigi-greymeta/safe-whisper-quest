@@ -14,6 +14,7 @@
       - connect-src: Supabase REST/Realtime only; nothing else may exfiltrate data.
       - style-src 'unsafe-inline' is required by Tailwind / shadcn runtime classes.
       - img-src includes data: and blob: for QR codes and decrypted attachments.
+      - media-src blob: plays videos decrypted in memory (vanishing groups).
       - frame-ancestors 'none' prevents clickjacking.
       - form-action 'none' prevents form-based exfiltration.
     -->
@@ -24,6 +25,7 @@
         script-src 'self' 'wasm-unsafe-eval';
         style-src 'self' 'unsafe-inline';
         img-src 'self' data: blob:;
+        media-src 'self' blob:;
         font-src 'self' data:;
         connect-src 'self' https://*.supabase.co wss://*.supabase.co;
         worker-src 'self' blob:;
