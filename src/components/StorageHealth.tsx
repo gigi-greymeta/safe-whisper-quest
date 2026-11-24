@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
-import { Activity, CheckCircle2, AlertCircle, RefreshCw, Smartphone } from "lucide-react";
+import { Activity, CheckCircle2, AlertCircle, RefreshCw, Smartphone, Lock } from "lucide-react";
+import { CollapsibleSection } from "@/components/CollapsibleCard";
 import { Button } from "@/components/ui/button";
 import { getIdentity, restoreIdentityIfMissing } from "@/store/identity";
 import { restoreContactsIfMissing } from "@/store/contacts";
@@ -103,11 +104,7 @@ export default function StorageHealth() {
 
   return (
     <div className="space-y-3">
-      <div className="rounded-md border border-border/60 bg-muted/30 p-3 space-y-2">
-        <div className="flex items-center gap-2">
-          <Smartphone className="h-3.5 w-3.5 text-primary" />
-          <p className="text-xs font-semibold text-foreground">Device Binding</p>
-        </div>
+      <CollapsibleSection icon={<Smartphone className="h-3.5 w-3.5 text-primary" />} title="Device Binding">
         <Row
           ok={identityBound}
           label={identityBound ? "Identity is device-bound" : "Identity NOT found on this device"}
@@ -125,23 +122,15 @@ export default function StorageHealth() {
         <Row
           ok={contactsBound}
           label={`${snap.contactCount} contact${snap.contactCount === 1 ? "" : "s"} on this device`}
-          detail={snap.contactsInVault ? "Encrypted copy in vault ✓" : "No encrypted vault copy yet"}
         />
-      </div>
+      </CollapsibleSection>
 
-      <div className="rounded-md border border-border/60 bg-muted/30 p-3 space-y-1">
-        <p className="text-xs font-semibold text-foreground mb-1">Vault & Hydration</p>
+      <CollapsibleSection icon={<Lock className="h-3.5 w-3.5 text-primary" />} title="Vault & Hydration">
         <Row
           ok={snap.vaultConfigured}
           label={snap.vaultConfigured ? "Encrypted vault configured" : "No vault — set a PIN to enable"}
         />
-        <Row
-          ok={snap.vaultUnlocked}
-          label={snap.vaultUnlocked ? "Vault unlocked & hydrated" : "Vault locked"}
-        />
-        <Row ok={snap.localStorageAvailable} label="localStorage writable" />
-        <Row ok={snap.idbAvailable} label="IndexedDB mirror available" />
-      </div>
+      </CollapsibleSection>
 
       <div className="flex items-center justify-between">
         <p className="text-[10px] text-muted-foreground flex items-center gap-1">

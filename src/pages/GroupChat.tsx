@@ -110,9 +110,6 @@ const GroupChat = () => {
           <div className="flex flex-col items-center justify-center h-full text-center space-y-2">
             <Users className="h-10 w-10 text-primary/50" />
             <p className="text-muted-foreground text-sm">No messages yet</p>
-            <p className="text-muted-foreground text-xs max-w-[220px]">
-              Messages are encrypted individually for each member using pairwise queues. The server never sees group metadata.
-            </p>
           </div>
         ) : (
           messages.map((msg) => (

@@ -108,11 +108,6 @@ const ResetWizard = () => {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4 text-sm">
-              <p className="text-muted-foreground">
-                This wizard guides you through wiping every trace of your current
-                identity and re-creating a new one. It is designed to work
-                reliably in privacy browsers like Dolphin and Focus.
-              </p>
               <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-3 space-y-2">
                 <p className="flex items-center gap-2 text-destructive font-medium">
                   <AlertTriangle className="h-4 w-4" /> What gets erased
@@ -142,7 +137,7 @@ const ResetWizard = () => {
             <CardContent className="space-y-4 text-sm">
               <p className="text-muted-foreground">
                 Download an encrypted snapshot of your current identity and
-                messages. You can import this later to restore. <span className="text-foreground">Skip this only if you truly want a clean slate.</span>
+                messages. You can import this later to restore.
               </p>
               <Button variant="outline" className="w-full" onClick={handleBackup}>
                 <Download className="h-4 w-4 mr-2" /> Download Backup
@@ -238,17 +233,8 @@ const ResetWizard = () => {
             </CardHeader>
             <CardContent className="space-y-4 text-sm">
               <p className="text-muted-foreground">
-                All local data has been securely erased. Tap below to reload
-                Phantom and create a fresh identity.
+                All local data has been securely erased.
               </p>
-              <div className="rounded-lg border bg-card p-3 text-xs text-muted-foreground space-y-1">
-                <p className="text-foreground font-medium">Tip for Dolphin / Focus</p>
-                <p>
-                  If the app does not show the welcome screen after reload,
-                  fully close the browser tab and reopen{" "}
-                  <span className="font-mono">{window.location.host}</span>.
-                </p>
-              </div>
               <Button className="w-full" size="lg" onClick={handleFinish}>
                 Reload & Create New Identity <ArrowRight className="h-4 w-4 ml-2" />
               </Button>

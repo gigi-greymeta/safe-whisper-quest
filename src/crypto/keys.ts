@@ -58,6 +58,16 @@ export function publicKeyToBase64(jwk: JsonWebKey): string {
   return btoa(JSON.stringify({ x: jwk.x, y: jwk.y, kty: jwk.kty, crv: jwk.crv }));
 }
 
+/** True when a public key from the directory encodes to the fingerprint it was listed under. */
+export function registryKeyMatchesFingerprint(fingerprint: string, jwk: JsonWebKey | null | undefined): boolean {
+  if (!jwk || jwk.kty !== "EC" || jwk.crv !== "P-256" || !jwk.x || !jwk.y) return false;
+  try {
+    return publicKeyToBase64(jwk) === fingerprint;
+  } catch {
+    return false;
+  }
+}
+
 export function base64ToPublicKey(b64: string): JsonWebKey {
   // Sanitize: strip whitespace, smart quotes, and surrounding chars users
   // commonly introduce when copy-pasting between apps (iOS, terminal, etc.)

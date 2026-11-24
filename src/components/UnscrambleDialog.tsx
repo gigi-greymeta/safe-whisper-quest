@@ -84,13 +84,13 @@ const UnscrambleDialog = ({ open, failures, onClose, onSuccess, onFailure }: Uns
         <DialogHeader>
           <DialogTitle>Unscramble message</DialogTitle>
           <DialogDescription>
-            Confirm it's you to read this message. After {MAX_UNLOCK_FAILURES} failed attempts it's deleted from this device.
+            After {MAX_UNLOCK_FAILURES} failed attempts it's deleted from this device.
           </DialogDescription>
         </DialogHeader>
 
         {!hasPin && !hasBiometrics ? (
           <p className="text-sm text-muted-foreground">
-            Turn on Screen Lock in Settings to set a PIN, then come back to read this message.
+            Set a PIN first.
           </p>
         ) : (
           <div className="space-y-3">

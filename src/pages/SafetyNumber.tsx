@@ -130,10 +130,6 @@ const SafetyNumber = () => {
           <p className="text-sm text-foreground font-medium">
             Verify your security with {contact.displayName}
           </p>
-          <p className="text-xs text-muted-foreground leading-relaxed">
-            Compare the number below with {contact.displayName}'s screen. If they match,
-            your end-to-end encryption is verified and no one is intercepting your messages.
-          </p>
         </div>
 
         {/* QR Code */}
@@ -154,12 +150,12 @@ const SafetyNumber = () => {
         >
           {copied ? (
             <>
-              <Check className="h-4 w-4" />
+              <Check className="text-primary h-4 w-4" />
               Copied
             </>
           ) : (
             <>
-              <Copy className="h-4 w-4" />
+              <Copy className="text-primary h-4 w-4" />
               Copy Safety Number
             </>
           )}
@@ -224,29 +220,14 @@ const SafetyNumber = () => {
 
         {/* Info cards */}
         <div className="w-full max-w-[300px] space-y-3 mt-2">
-          <div className="bg-card/50 border rounded-lg p-3">
-            <p className="text-xs text-muted-foreground">
-              <span className="text-foreground font-medium">In person:</span> Compare the numbers side-by-side, or scan the QR code from each other's screens.
-            </p>
-          </div>
-          <div className="bg-card/50 border rounded-lg p-3">
-            <p className="text-xs text-muted-foreground">
-              <span className="text-foreground font-medium">Remotely:</span> Read the numbers aloud over a trusted voice call.
-            </p>
-          </div>
+
           {ratchetState ? (
             <div className="bg-primary/10 border border-primary/20 rounded-lg p-3">
               <p className="text-xs text-primary">
-                ✓ This number includes your Double Ratchet root key, providing forward secrecy verification.
+                ✓ This number includes your Double Ratchet root key.
               </p>
             </div>
-          ) : (
-            <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-3">
-              <p className="text-xs text-yellow-400">
-                ⚠ Legacy mode — this number is based on static keys only. Exchange a message to activate PFS verification.
-              </p>
-            </div>
-          )}
+          ) : null}
         </div>
       </div>
     </div>

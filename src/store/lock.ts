@@ -2,6 +2,12 @@
 
 export type AuthMode = "pin" | "passphrase";
 
+// New locks are numeric PINs: the calculator disguise unlocks by typing the PIN on
+// its keypad, and the notes disguise by a note titled with it, so letters never work.
+// "passphrase" remains only so locks created before this still open.
+export const MIN_PIN_LENGTH = 4;
+export const MAX_PIN_LENGTH = 12;
+
 const AUTH_MODE_KEY = "phantom_auth_mode";
 const PIN_HASH_KEY = "phantom_pin_hash";
 const PIN_SALT_KEY = "phantom_pin_salt";
@@ -142,7 +148,12 @@ export function setAuthMode(mode: AuthMode): void {
 
 // ─── Main PIN / Passphrase ──────────────────────────────────────────
 
+export function isValidPin(pin: string): boolean {
+  return new RegExp(`^\\d{${MIN_PIN_LENGTH},${MAX_PIN_LENGTH}}$`).test(pin);
+}
+
 export async function setPin(pin: string, mode: AuthMode = "pin"): Promise<void> {
+  if (mode === "pin" && !isValidPin(pin)) throw new Error(`PIN must be ${MIN_PIN_LENGTH}–${MAX_PIN_LENGTH} digits`);
   const salt = generateSalt();
   const hashed = await deriveKey(pin, salt);
   localStorage.setItem(PIN_SALT_KEY, uint8ToBase64(salt));
@@ -199,6 +210,7 @@ export interface PanicWipeIdentity {
  * delete the account there. The copy is erased with everything else on wipe.
  */
 export async function setPanicPin(pin: string, identity?: PanicWipeIdentity): Promise<void> {
+  if (!isValidPin(pin)) throw new Error(`Sentry PIN must be ${MIN_PIN_LENGTH}–${MAX_PIN_LENGTH} digits`);
   const salt = generateSalt();
   const hashed = await deriveKey(pin, salt);
   localStorage.setItem(PANIC_SALT_KEY, uint8ToBase64(salt));

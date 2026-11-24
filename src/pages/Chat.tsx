@@ -323,7 +323,6 @@ const Chat = () => {
               </p>
               <p className="text-[11px] text-destructive/80 mt-0.5 leading-snug">
                 {contact.displayName}'s encryption key has changed since you first connected. 
-                This could indicate a man-in-the-middle attack or that they reinstalled the app.
               </p>
               <div className="flex items-center gap-2 mt-2">
                 <Button
@@ -366,9 +365,6 @@ const Chat = () => {
           <div className="flex flex-col items-center justify-center h-full text-center space-y-2">
             <Shield className="h-10 w-10 text-primary/50" />
             <p className="text-muted-foreground text-sm">No messages yet</p>
-            <p className="text-muted-foreground text-xs max-w-[200px]">
-              Messages are encrypted end-to-end and relayed through a blind server that can never read them.
-            </p>
           </div>
         ) : (
           messages.map((msg) => {

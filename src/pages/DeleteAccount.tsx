@@ -74,7 +74,7 @@ const DeleteAccount = () => {
             <CardContent className="space-y-4 text-sm">
               <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-3 space-y-2">
                 <p className="flex items-center gap-2 text-destructive font-medium">
-                  <AlertTriangle className="h-4 w-4" /> Deleted from our relay server
+                  <AlertTriangle className="h-4 w-4" /> Deleted
                 </p>
                 <ul className="list-disc pl-5 text-xs text-muted-foreground space-y-1">
                   <li>Your directory entry (display name, public key, fingerprint)</li>
@@ -90,11 +90,6 @@ const DeleteAccount = () => {
                   <li>Screen lock, vault and cached snapshots</li>
                 </ul>
               </div>
-              <p className="text-xs text-muted-foreground">
-                Messages you already sent that are still waiting for a contact are not linked to
-                you and expire automatically within 7 days. This cannot be undone. Vault backups
-                you exported earlier are not affected; delete those files yourself.
-              </p>
               <a
                 href="/legal/delete-account.html"
                 className="inline-flex items-center gap-1 text-xs text-primary underline"

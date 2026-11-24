@@ -16,6 +16,13 @@ const ICON_BG: Record<DisguiseId, string> = {
   weather: "bg-gradient-to-b from-sky-300 to-sky-600",
 };
 
+const HOW_TO_OPEN: Record<DisguiseId, string> = {
+  default: "",
+  calculator: "Type your PIN and press = to get in.",
+  notes: "Add a note titled with your PIN to get in.",
+  weather: "Press and hold the temperature for 2 seconds, then enter your PIN.",
+};
+
 /**
  * Premium: choose how the app appears on the home screen. A disguise that's already
  * on stays on after a downgrade (switching back to Phantom is always allowed), so the
@@ -45,6 +52,13 @@ const DisguiseSettings = () => {
       toast({
         title: "Set a PIN first",
         description: "The calculator opens Phantom when you type your PIN and press =. Turn on Screen Lock with a PIN above.",
+      });
+      return;
+    }
+    if (id === "weather" && !isLockEnabled()) {
+      toast({
+        title: "Set a PIN first",
+        description: "The weather screen opens Phantom when you press and hold the temperature, then enter your PIN. Turn on Screen Lock above.",
       });
       return;
     }
@@ -91,9 +105,7 @@ const DisguiseSettings = () => {
           ))}
         </div>
         <p className="text-[10px] text-muted-foreground leading-relaxed">
-          Changes the home-screen icon{isIOS ? "" : " and name"}. While disguised, the lock screen doesn't show the Phantom name.
-          Calculator opens to a working calculator: type your PIN and press = to get in.
-          {isIOS && " iOS shows a short notice when the icon changes, and keeps the name Phantom under the icon."}
+          Changes the home-screen icon{isIOS ? "" : " and name"}. {HOW_TO_OPEN[current]}
         </p>
       </CardContent>
     </Card>

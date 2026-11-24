@@ -14,6 +14,7 @@ import RequireUnlocked from "@/components/RequireUnlocked";
 import { isLockEnabled, disableLock, hasPanicPin, verifyPanicPin, verifyPin, recordUnlock, isLockedOut } from "@/store/lock";
 import { markSessionUnlocked } from "@/store/sessionLock";
 import CalculatorDecoy from "@/components/CalculatorDecoy";
+import WeatherDecoy from "@/components/WeatherDecoy";
 import { titleMatchesAppPin } from "@/lib/notesPinTitle";
 import { getDisguise, type DisguiseId } from "@/lib/disguise";
 import { clearVault, hasVault, hydrateVaultToLocalStorage, lockVault, syncVaultFromLocalStorage, unlockVault } from "@/store/vault";
@@ -60,6 +61,11 @@ const AppContent = () => {
   const { state, reloadState } = useCrypto();
   const [locked, setLocked] = useState(false);
   const [wiping, setWiping] = useState(false);
+  // Weather disguise: the forecast stays in front until the temperature is held for 2 s.
+  const [weatherRevealed, setWeatherRevealed] = useState(false);
+  useEffect(() => {
+    if (locked) setWeatherRevealed(false);
+  }, [locked]);
 
   const handleManualLock = async () => {
     clearSessionUnlock();
@@ -236,7 +242,18 @@ const AppContent = () => {
       );
     }
 
-    return <LockScreen onUnlock={unlock} onPanicWipe={handlePanicWipe} plain={disguise !== "default"} />;
+    if (disguise === "weather" && !weatherRevealed) {
+      return <WeatherDecoy onReveal={() => setWeatherRevealed(true)} />;
+    }
+
+    return (
+      <LockScreen
+        onUnlock={unlock}
+        onPanicWipe={handlePanicWipe}
+        plain={disguise !== "default"}
+        onCancel={disguise === "weather" ? () => setWeatherRevealed(false) : undefined}
+      />
+    );
   }
 
   if (mobileBrowser && !state.identity && !hasVault()) {

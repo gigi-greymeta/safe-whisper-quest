@@ -146,7 +146,7 @@ const VaultExport = () => {
         <p className="text-xs font-semibold text-foreground">Vault Backup</p>
       </div>
       <p className="text-[11px] text-muted-foreground">
-        Export your encrypted vault for offline backup. The backup contains all keys, contacts, and messages in their encrypted form.
+        Export your encrypted vault for offline backup.
       </p>
       <div className="flex gap-2">
         <Button variant="outline" size="sm" onClick={handleExport} className="flex-1">

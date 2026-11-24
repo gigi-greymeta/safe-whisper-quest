@@ -2,6 +2,8 @@
 // The server never knows who sent a message (SimpleX-style sender anonymization)
 
 import { supabase } from "@/integrations/supabase/client";
+import { registryKeyMatchesFingerprint } from "@/crypto/keys";
+import { deleteAllMyInboxes, resolveOutbox, sendToInbox } from "@/services/relayV2";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import { createDeletionProof } from "../../supabase/functions/_shared/deletionProof.ts";
 
@@ -58,7 +60,8 @@ export async function searchUsers(query: string) {
     .limit(20);
 
   if (error) throw new Error(`Search failed: ${error.message}`);
-  return data || [];
+  // Hide entries whose key doesn't encode to their fingerprint (tampered rows).
+  return (data || []).filter((row) => registryKeyMatchesFingerprint(row.fingerprint, row.public_key_jwk as JsonWebKey));
 }
 
 // ─── Pairwise Queues ────────────────────────────────────────────────
@@ -147,6 +150,13 @@ export async function sendRelayMessage(
   // Pad to standard bucket size
   const paddedPayload = padPayload(innerPayload);
 
+  // Relay v2 when the contact's app reads its owner-only inbox; v1 otherwise.
+  const v2QueueId = await resolveOutbox(queueId);
+  if (v2QueueId) {
+    await sendToInbox(v2QueueId, paddedPayload, iv);
+    return;
+  }
+
   const { error } = await supabase.from("relay_messages").insert({
     queue_id: queueId,
     recipient_fingerprint: queueId,
@@ -224,7 +234,23 @@ export async function fetchPendingMessages(recipientFingerprint: string) {
 }
 
 export async function deleteRelayMessage(id: string) {
-  await supabase.from("relay_messages").delete().eq("id", id);
+  const { error } = await supabase.from("relay_messages").delete().eq("id", id);
+  if (error) throw new Error(`Failed to delete relay message: ${error.message}`);
+}
+
+/**
+ * Delivery acknowledgement: once a message has been decrypted and stored on
+ * this device, remove its ciphertext from the relay so nothing is kept on the
+ * server after delivery. Best effort — a failure is retried on the next
+ * catch-up (already-seen messages are acknowledged again), and the hourly
+ * expiry job removes anything older than 7 days regardless.
+ */
+export async function acknowledgeRelayMessage(id: string): Promise<void> {
+  try {
+    await deleteRelayMessage(id);
+  } catch (error) {
+    console.warn("[relay] delivery acknowledgement failed; will retry on next catch-up:", error);
+  }
 }
 
 // ─── Real-time Subscription (Queue-based) ───────────────────────────
@@ -331,6 +357,9 @@ export async function deleteIdentityFromServer(
   fingerprint: string,
   privateKeyJwk: JsonWebKey
 ): Promise<void> {
+  // v2 inboxes carry no fingerprint, so this phone removes its own first.
+  await deleteAllMyInboxes();
+
   const { data: keyData, error: keyError } = await supabase.functions.invoke("delete-identity", { method: "GET" });
   if (keyError || !keyData?.publicKey) throw new Error("Deletion service unavailable. Check your connection and try again.");
 

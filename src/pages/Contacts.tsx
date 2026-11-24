@@ -171,7 +171,7 @@ const Contacts = () => {
             <Shield className="h-12 w-12 text-muted-foreground/60" />
             <p className="text-muted-foreground text-sm">No contacts yet</p>
             <p className="text-muted-foreground text-xs max-w-[200px]">
-              Search for users on the relay or add a contact by pasting their public key.
+              Search for users or add a contact by pasting their public key.
             </p>
             <Button variant="outline" size="sm" onClick={() => setShowAdd(true)}>
               <UserPlus className="h-4 w-4 mr-2" /> Add Contact
@@ -185,18 +185,15 @@ const Contacts = () => {
         <DialogContent className="dark max-w-sm">
           <DialogHeader>
             <DialogTitle>Add Contact</DialogTitle>
-            <DialogDescription>
-              Find users on the relay or paste a public key directly.
-            </DialogDescription>
           </DialogHeader>
 
           <Tabs defaultValue="search" className="w-full">
             <TabsList className="w-full">
               <TabsTrigger value="search" className="flex-1">
-                <Search className="h-3 w-3 mr-1" /> Search Relay
+                <Search className="text-primary h-3 w-3 mr-1" /> Search Relay
               </TabsTrigger>
               <TabsTrigger value="manual" className="flex-1">
-                <Shield className="h-3 w-3 mr-1" /> Paste Key
+                <Shield className="text-primary h-3 w-3 mr-1" /> Paste Key
               </TabsTrigger>
             </TabsList>
 
@@ -267,7 +264,7 @@ const Contacts = () => {
           <DialogHeader>
             <DialogTitle>Create Group</DialogTitle>
             <DialogDescription>
-              Select members for an encrypted group chat. Messages are sent individually to each member via pairwise queues.
+              Select members for an encrypted group chat.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3">

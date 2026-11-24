@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Shield, Lock, Delete, AlertTriangle, KeyRound } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { verifyPin, verifyPanicPin, hasPanicPin, recordUnlock, isLockedOut, getAuthMode } from "@/store/lock";
+import { verifyPin, verifyPanicPin, hasPanicPin, recordUnlock, isLockedOut, getAuthMode, MIN_PIN_LENGTH, MAX_PIN_LENGTH } from "@/store/lock";
 import { markSessionUnlocked } from "@/store/sessionLock";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -12,16 +12,18 @@ interface LockScreenProps {
   onPanicWipe?: (credential: string) => void;
   /** Hide the Phantom name and logo (app disguise is on). */
   plain?: boolean;
+  /** Back to the disguise's decoy screen (weather disguise). */
+  onCancel?: () => void;
 }
 
-const LockScreen = ({ onUnlock, onPanicWipe, plain }: LockScreenProps) => {
+const LockScreen = ({ onUnlock, onPanicWipe, plain, onCancel }: LockScreenProps) => {
   const [pin, setPin] = useState("");
   const [passphrase, setPassphrase] = useState("");
   const [error, setError] = useState(false);
   const [checking, setChecking] = useState(false);
   const [lockoutRemaining, setLockoutRemaining] = useState(0);
   const authMode = getAuthMode();
-  const maxPinLength = 12;
+  const maxPinLength = MAX_PIN_LENGTH;
 
   useEffect(() => {
     const check = () => {
@@ -74,6 +76,7 @@ const LockScreen = ({ onUnlock, onPanicWipe, plain }: LockScreenProps) => {
   };
 
   // ─── Passphrase unlock ────────────────────────────────────────────
+  // Only for locks set up before PINs became digits-only; new locks are always PINs.
 
   if (authMode === "passphrase") {
     return (
@@ -118,6 +121,11 @@ const LockScreen = ({ onUnlock, onPanicWipe, plain }: LockScreenProps) => {
           >
             {checking ? "Verifying..." : "Unlock"}
           </Button>
+          {onCancel && (
+            <Button variant="ghost" className="w-full text-muted-foreground" onClick={onCancel}>
+              Cancel
+            </Button>
+          )}
         </div>
 
         <div className="flex items-center gap-1.5 mt-8 text-muted-foreground">
@@ -143,7 +151,7 @@ const LockScreen = ({ onUnlock, onPanicWipe, plain }: LockScreenProps) => {
   };
 
   const handlePinSubmit = () => {
-    if (pin.length >= 8) {
+    if (pin.length >= MIN_PIN_LENGTH) {
       checkCredential(pin);
     }
   };
@@ -168,7 +176,7 @@ const LockScreen = ({ onUnlock, onPanicWipe, plain }: LockScreenProps) => {
                 ? error
                   ? "bg-destructive scale-110"
                   : "bg-primary scale-110"
-                : i < 8
+                : i < MIN_PIN_LENGTH
                   ? "bg-muted border border-border"
                   : "bg-muted/40 border border-border/40"
             )}
@@ -176,9 +184,7 @@ const LockScreen = ({ onUnlock, onPanicWipe, plain }: LockScreenProps) => {
         ))}
       </div>
 
-      <p className="text-[10px] text-muted-foreground mb-4">
-        {pin.length}/8 minimum
-      </p>
+      <div className="mb-4" />
 
       {isLocked && (
         <div className="flex items-center gap-1.5 mb-4 text-destructive">
@@ -226,9 +232,15 @@ const LockScreen = ({ onUnlock, onPanicWipe, plain }: LockScreenProps) => {
         })}
       </div>
 
-      {pin.length >= 8 && (
+      {pin.length >= MIN_PIN_LENGTH && (
         <Button onClick={handlePinSubmit} className="mt-4 w-[260px]" disabled={checking || isLocked}>
           {checking ? "Verifying..." : "Unlock"}
+        </Button>
+      )}
+
+      {onCancel && (
+        <Button variant="ghost" className="mt-2 text-muted-foreground" onClick={onCancel}>
+          Cancel
         </Button>
       )}
 

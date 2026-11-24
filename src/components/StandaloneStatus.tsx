@@ -31,7 +31,7 @@ export default function StandaloneStatus() {
       <div className="w-full max-w-sm mx-auto rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 flex items-center gap-2">
         <CheckCircle2 className="h-3.5 w-3.5 text-primary shrink-0" />
         <span className="text-[11px] text-primary leading-tight">
-          Running as an installed app — full standalone mode active.
+          Standalone mode active.
         </span>
       </div>
     );

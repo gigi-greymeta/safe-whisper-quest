@@ -26,10 +26,7 @@ const NotificationSettings = () => {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div className="pr-3">
-          <p className="text-sm text-foreground">Message alert sound</p>
-          <p className="text-xs text-muted-foreground">
-            Play a short sound when a new message arrives. No content or sender is ever shown.
-          </p>
+          <p className="text-sm text-foreground">Notification sound</p>
         </div>
         <Switch
           checked={prefs.enabled}
@@ -102,9 +99,6 @@ const NotificationSettings = () => {
           <div className="flex items-center justify-between">
             <div className="pr-3">
               <p className="text-sm text-foreground">Only when app is hidden</p>
-              <p className="text-xs text-muted-foreground">
-                Stay silent while you're actively looking at the app
-              </p>
             </div>
             <Switch
               checked={prefs.onlyWhenHidden}
@@ -113,12 +107,6 @@ const NotificationSettings = () => {
           </div>
         </>
       )}
-
-      <p className="text-[10px] text-muted-foreground">
-        Phantom never shows OS-level previews, sender names, or message content
-        in notifications — only a sound. This protects against the lock-screen
-        leak pattern.
-      </p>
     </div>
   );
 };

@@ -17,6 +17,7 @@ import StorageHealth from "@/components/StorageHealth";
 import MessagingReadinessChecklist from "@/components/MessagingReadinessChecklist";
 import NotificationSettings from "@/components/NotificationSettings";
 import DisguiseSettings from "@/components/DisguiseSettings";
+import CollapsibleCard from "@/components/CollapsibleCard";
 import { wipeDeviceCaches } from "@/lib/deviceWipe";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Bell, User } from "lucide-react";
@@ -182,27 +183,13 @@ const Settings = () => {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm flex items-center gap-2">
-              <Activity className="h-4 w-4 text-primary" /> Storage Health
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <StorageHealth />
-          </CardContent>
-        </Card>
+        <CollapsibleCard icon={<Activity className="h-4 w-4 text-primary" />} title="Storage Health">
+          <StorageHealth />
+        </CollapsibleCard>
 
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm flex items-center gap-2">
-              <ListChecks className="h-4 w-4 text-primary" /> Messaging Readiness
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <MessagingReadinessChecklist />
-          </CardContent>
-        </Card>
+        <CollapsibleCard icon={<ListChecks className="h-4 w-4 text-primary" />} title="Messaging Readiness">
+          <MessagingReadinessChecklist />
+        </CollapsibleCard>
           </TabsContent>
 
           {/* ---------------- Security tab ---------------- */}
@@ -218,7 +205,7 @@ const Settings = () => {
               <div>
                 <p className="text-sm text-foreground">Screen Lock</p>
                 <p className="text-xs text-muted-foreground">
-                  Require PIN or passphrase to open
+                  Require a PIN to open
                 </p>
               </div>
               <Switch checked={lockEnabled} onCheckedChange={handleToggleLock} />
@@ -242,11 +229,6 @@ const Settings = () => {
                   <AlertDialogContent className="dark">
                     <AlertDialogHeader>
                       <AlertDialogTitle>Sign out of Phantom?</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        Your encrypted vault stays on this device. Reopening
-                        the app will require your passcode — you will not be
-                        dropped back into Create Identity unless you Reset.
-                      </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                       <AlertDialogCancel>Cancel</AlertDialogCancel>
@@ -264,14 +246,11 @@ const Settings = () => {
                       {!has("panicPin") && <span className="text-[10px] uppercase tracking-wider text-primary">Premium</span>}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      A decoy credential that silently wipes all data, deletes your account from the server and shows a fresh install
+                      Silently wipe all data and delete your account.
                     </p>
                   </div>
                   <Switch checked={panicEnabled} onCheckedChange={handleTogglePanic} />
                 </div>
-                <p className="text-[10px] text-muted-foreground">
-                  au.com.invoice.greymetatry credential is entered at the lock screen, all local data is securely erased and the app reloads to its first-launch state — no error, no warning.
-                </p>
               </>
             )}
           </CardContent>
@@ -293,33 +272,29 @@ const Settings = () => {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm flex items-center gap-2">
-              <Info className="h-4 w-4 text-primary" /> Security Info
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            {[
-              "ECDH P-256 key exchange",
-              "AES-256-GCM message encryption",
-              "HMAC-SHA256 message authentication",
-              "PBKDF2 key-stretched PIN (100k iterations)",
-              "AES-256-GCM encrypted localStorage vault",
-              "Per-session ephemeral keys (forward secrecy)",
-              "TOFU key pinning with MITM warnings",
-              "Sentry Mode — decoy credential silently wipes all data",
-              "All data stored locally — never sent to any server",
-              "No phone number or email required",
-              "Zero analytics or tracking",
-            ].map((item) => (
-              <div key={item} className="flex items-start gap-2">
-                <Shield className="h-3 w-3 mt-1 text-primary shrink-0" />
-                <p className="text-xs text-muted-foreground">{item}</p>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
+        <CollapsibleCard icon={<Info className="h-4 w-4 text-primary" />} title="Security Info" contentClassName="space-y-2">
+          {[
+            "ECDH P-256 key exchange",
+            "AES-256-GCM message encryption",
+            "HMAC-SHA256 message authentication",
+            "Argon2id key-stretched PIN, with lockouts after failed attempts",
+            "AES-256-GCM encrypted on-device vault",
+            "Per-session ephemeral keys (forward secrecy)",
+            "TOFU key pinning with MITM warnings; directory keys are checked against their fingerprint",
+            "Sentry Mode — a decoy PIN silently wipes all data",
+            "Messages and contacts are stored only on this device",
+            "Direct messages cross the relay encrypted, in a private inbox only your phone can open, and are deleted as soon as they are delivered (undelivered ones after 7 days)",
+            "The relay can't tell who is talking to whom: inbox addresses are derived from a secret only the two people share",
+            "Vanishing group messages are kept encrypted on the relay for 48 hours so members can catch up",
+            "No phone number or email required",
+            "Zero analytics or tracking",
+          ].map((item) => (
+            <div key={item} className="flex items-start gap-2">
+              <Shield className="h-3 w-3 mt-1 text-primary shrink-0" />
+              <p className="text-xs text-muted-foreground">{item}</p>
+            </div>
+          ))}
+        </CollapsibleCard>
           </TabsContent>
 
           {/* ---------------- Notifications tab ---------------- */}
@@ -371,16 +346,12 @@ const Settings = () => {
           <CardContent className="space-y-2">
             <div className="flex items-center justify-between">
               <div className="pr-3">
-                <p className="text-sm text-foreground">On-screen console</p>
                 <p className="text-xs text-muted-foreground">
-                  Show an in-app developer console (Eruda) to view logs, network and errors directly on this device.
+                  Show an in-app developer console (Eruda)
                 </p>
               </div>
               <Switch checked={debugConsole} onCheckedChange={handleToggleDebug} />
             </div>
-            <p className="text-[10px] text-muted-foreground">
-              Loads from a public CDN only when enabled. Stays off by default.
-            </p>
           </CardContent>
         </Card>
 
@@ -394,7 +365,7 @@ const Settings = () => {
             <AlertDialogHeader>
               <AlertDialogTitle>Burn All Data?</AlertDialogTitle>
               <AlertDialogDescription>
-                This will permanently delete your identity, all contacts, all messages, and your PIN. 
+                This will permanently delete all data.
                 This action cannot be undone. Your keypair will be destroyed.
               </AlertDialogDescription>
             </AlertDialogHeader>
@@ -446,10 +417,6 @@ const Settings = () => {
         </Card>
           </TabsContent>
         </Tabs>
-
-        <p className="text-[10px] text-muted-foreground text-center pb-4">
-          Phantom v1.0 — Inspired by Signal & SimpleX protocols
-        </p>
       </div>
     </div>
   );

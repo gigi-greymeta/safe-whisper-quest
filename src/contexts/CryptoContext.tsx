@@ -9,7 +9,7 @@ import { getMessagesForContact, saveMessage, clearAllMessages, deleteMessagesFor
 import type { Group } from "@/store/groups";
 import { getGroups, getGroup, createGroup as storeCreateGroup, deleteGroup as storeDeleteGroup, clearGroups } from "@/store/groups";
 import { getGroupMessages, saveGroupMessage, deleteGroupMessages, clearAllGroupMessages } from "@/store/groupMessages";
-import { importPrivateKey, importPublicKey, deriveSharedKey, base64ToPublicKey, publicKeyToBase64 } from "@/crypto/keys";
+import { importPrivateKey, importPublicKey, deriveSharedKey, base64ToPublicKey, publicKeyToBase64, registryKeyMatchesFingerprint } from "@/crypto/keys";
 import { encryptMessage, decryptMessage } from "@/crypto/encrypt";
 import { pinKey } from "@/store/keyPinning";
 import { clearPinnedKeys } from "@/store/keyPinning";
@@ -33,7 +33,7 @@ import {
   sendRelayMessage,
   fetchPendingMessages,
   fetchPendingMessagesForQueue,
-  deleteRelayMessage,
+  acknowledgeRelayMessage,
   subscribeToMessages,
   subscribeToQueues,
   unsubscribeFromMessages,
@@ -44,6 +44,18 @@ import {
 } from "@/services/relay";
 import { deriveHmacKeyFromShared, signPayload, verifyPayload } from "@/crypto/hmac";
 import type { RealtimeChannel } from "@supabase/supabase-js";
+import { deriveInboxSecrets, deriveRelayV2Queues, type InboxSecrets } from "@/crypto/relayV2";
+import {
+  ackInbox,
+  deleteAllMyInboxes,
+  deleteMyInboxFor,
+  fetchInbox,
+  registerInbox,
+  rememberMyInbox,
+  setOutboxRoute,
+  subscribeDoorbell,
+  unsubscribeDoorbell,
+} from "@/services/relayV2";
 import {
   enqueueOutbox,
   listOutbox,
@@ -480,7 +492,10 @@ export function CryptoProvider({ children }: { children: React.ReactNode }) {
         console.log("[relay] subscribing to inbox queues:", queueIds.map((q) => q.slice(0, 8)));
         const queueChannel = subscribeToQueues(queueIds, (msg) => {
         console.log("[relay] 📩 realtime message on queue", msg.queue_id.slice(0, 8), "id=", msg.id.slice(0, 8));
-        if (hasSeen(msg.id)) return;
+        if (hasSeen(msg.id)) {
+          void acknowledgeRelayMessage(msg.id);
+          return;
+        }
         void (async () => {
           // Wait for hydration so contacts/identity are guaranteed present.
           await hydrationReadyRef.current;
@@ -500,6 +515,7 @@ export function CryptoProvider({ children }: { children: React.ReactNode }) {
             try {
               await processRatchetMessage(contact, identity, msg.encrypted_payload, msg.iv);
               markSeen(msg.id);
+              void acknowledgeRelayMessage(msg.id);
               console.log("[relay] ✓ processed message from", contact.displayName);
               playIncomingMessageSound();
               incomingHandlersRef.current.forEach((handler) => {
@@ -508,11 +524,10 @@ export function CryptoProvider({ children }: { children: React.ReactNode }) {
             } catch (error) {
               console.error("[relay queue] failed to process incoming message:", error);
             }
-            // NOTE: deliberately NOT deleting from relay — server-side
-            // `expires_at` (7 days) handles cleanup. Keeping rows means an
-            // offline contact / second device can still receive the message
-            // when they come online later. Local `seenMessages` prevents
-            // re-processing on this device.
+            // Delivered messages are deleted from the relay straight away
+            // (acknowledgeRelayMessage). Only a message that failed to decrypt
+            // stays, so a later retry can still read it; the server's 7-day
+            // expiry removes it if it never can be.
         })();
         }, (queueId, status, error) => handleChannelStatus(`queue:${queueId}:${connectId}`, status, error), String(connectId));
         queueChannelRef.current = queueChannel;
@@ -537,10 +552,15 @@ export function CryptoProvider({ children }: { children: React.ReactNode }) {
               continue;
             }
             for (const msg of pending) {
-              if (hasSeen(msg.id)) continue;
+              if (hasSeen(msg.id)) {
+                // Delivered earlier but never acknowledged (older app version or a failed delete).
+                void acknowledgeRelayMessage(msg.id);
+                continue;
+              }
               try {
                 await processRatchetMessage(contact, identity, msg.encrypted_payload, msg.iv);
                 markSeen(msg.id);
+                void acknowledgeRelayMessage(msg.id);
                 playIncomingMessageSound();
                 incomingHandlersRef.current.forEach((handler) => {
                   handler(contact.publicKeyFingerprint, msg.encrypted_payload, msg.iv);
@@ -558,7 +578,10 @@ export function CryptoProvider({ children }: { children: React.ReactNode }) {
 
       if (queueIds.length === 0) {
       const channel = subscribeToMessages(fingerprint, (msg) => {
-      if (hasSeen(msg.id)) return;
+      if (hasSeen(msg.id)) {
+        void acknowledgeRelayMessage(msg.id);
+        return;
+      }
         void (async () => {
           await hydrationReadyRef.current;
           let contact = getContacts().find(
@@ -575,6 +598,7 @@ export function CryptoProvider({ children }: { children: React.ReactNode }) {
           try {
             await processRatchetMessage(contact, identity, msg.encrypted_payload, msg.iv);
             markSeen(msg.id);
+            void acknowledgeRelayMessage(msg.id);
             playIncomingMessageSound();
             incomingHandlersRef.current.forEach((handler) => {
               handler(msg.sender_fingerprint, msg.encrypted_payload, msg.iv);
@@ -582,7 +606,6 @@ export function CryptoProvider({ children }: { children: React.ReactNode }) {
           } catch (error) {
             console.error("[relay legacy] failed to process incoming message:", error);
           }
-          // Same as above — do not delete; rely on server-side expiry.
         })();
       }, (status, error) => handleChannelStatus(`legacy:${connectId}`, status, error), String(connectId));
 
@@ -648,6 +671,13 @@ export function CryptoProvider({ children }: { children: React.ReactNode }) {
     // restored from the IndexedDB mirror into React state.
     const identity = state.identity ?? getIdentity() ?? await restoreIdentityIfMissing();
     if (!identity) throw new Error("No identity");
+
+    // The fingerprint IS the encoded public key, so a directory entry whose key
+    // doesn't encode to its fingerprint has been tampered with. Refuse it rather
+    // than encrypt to a key the person shown never owned.
+    if (!registryKeyMatchesFingerprint(fingerprint, publicKeyJwk)) {
+      throw new Error("This contact's key doesn't match their fingerprint. Ask them to share their key directly.");
+    }
 
     // TOFU: pin the key on first contact
     pinKey(fingerprint, displayName, publicKeyJwk);
@@ -720,6 +750,7 @@ export function CryptoProvider({ children }: { children: React.ReactNode }) {
     if (contact?.inboxQueueId) {
       deleteQueue(contact.inboxQueueId).catch(console.error);
     }
+    if (contact) deleteMyInboxFor(contact.publicKeyFingerprint).catch(console.error);
     storeRemoveContact(id);
     deleteMessagesForContact(id);
     deleteRatchetState(id);
@@ -946,6 +977,7 @@ export function CryptoProvider({ children }: { children: React.ReactNode }) {
     contacts.forEach((c) => {
       if (c.inboxQueueId) deleteQueue(c.inboxQueueId).catch(() => {});
     });
+    void deleteAllMyInboxes();
 
     if (channelRef.current) {
       unsubscribeFromMessages(channelRef.current);
@@ -1045,6 +1077,7 @@ export function CryptoProvider({ children }: { children: React.ReactNode }) {
   const processIncomingMessages = useCallback(async () => {
     const identity = await resolveIdentity();
     if (!identity) return;
+    await drainV2InboxesRef.current();
 
     const restoredContacts = await restoreContactsIfMissing();
     const contacts = await Promise.all(restoredContacts.map((contact) => ensureContactQueues(contact)));
@@ -1056,10 +1089,14 @@ export function CryptoProvider({ children }: { children: React.ReactNode }) {
       if (!contact.inboxQueueId) continue;
       const pending = await fetchPendingMessagesForQueue(contact.inboxQueueId);
       for (const msg of pending) {
-        if (hasSeen(msg.id)) continue;
+        if (hasSeen(msg.id)) {
+          void acknowledgeRelayMessage(msg.id);
+          continue;
+        }
         try {
           await processRatchetMessage(contact, identity, msg.encrypted_payload, msg.iv);
           markSeen(msg.id);
+          void acknowledgeRelayMessage(msg.id);
         } catch (e) {
           console.error("[processIncomingMessages] decrypt failed:", e);
         }
@@ -1068,7 +1105,10 @@ export function CryptoProvider({ children }: { children: React.ReactNode }) {
 
     const pending = await fetchPendingMessages(identity.publicKeyFingerprint);
     for (const msg of pending) {
-      if (hasSeen(msg.id)) continue;
+      if (hasSeen(msg.id)) {
+        void acknowledgeRelayMessage(msg.id);
+        continue;
+      }
       const contact = contacts.find(
         (c) => c.publicKeyFingerprint === msg.sender_fingerprint
       );
@@ -1076,6 +1116,7 @@ export function CryptoProvider({ children }: { children: React.ReactNode }) {
         try {
           await processRatchetMessage(contact, identity, msg.encrypted_payload, msg.iv);
           markSeen(msg.id);
+          void acknowledgeRelayMessage(msg.id);
         } catch (e) {
           console.error("[processIncomingMessages legacy] decrypt failed:", e);
         }
@@ -1294,6 +1335,123 @@ export function CryptoProvider({ children }: { children: React.ReactNode }) {
       syncVault();
     }
   }, [state.disappearTimer, syncVault]);
+
+  // ─── Relay v2: owner-only inboxes ────────────────────────────────────
+  // Runs beside the v1 subscription. Each contact gets a secret, ECDH-derived
+  // inbox that only this phone can read (see src/crypto/relayV2.ts). A
+  // content-free doorbell broadcast says when to fetch; polling while the app is
+  // open and on resume covers a missed ring. Delivered envelopes are deleted from
+  // the relay straight away.
+  const processRatchetMessageRef = useRef(processRatchetMessage);
+  useEffect(() => {
+    processRatchetMessageRef.current = processRatchetMessage;
+  }, [processRatchetMessage]);
+  const drainV2InboxesRef = useRef<() => Promise<void>>(async () => {});
+
+  useEffect(() => {
+    const identity = state.identity;
+    if (!identity) return;
+    let cancelled = false;
+    const doorbells: RealtimeChannel[] = [];
+    const inboxes = new Map<string, { contactId: string; secrets: InboxSecrets }>();
+    const draining = new Set<string>();
+    const ringAgain = new Set<string>();
+
+    const drain = async (queueId: string): Promise<void> => {
+      const inbox = inboxes.get(queueId);
+      if (!inbox) return;
+      if (draining.has(queueId)) {
+        ringAgain.add(queueId);
+        return;
+      }
+      draining.add(queueId);
+      try {
+        await hydrationReadyRef.current;
+        const envelopes = await fetchInbox(queueId, inbox.secrets);
+        const delivered: string[] = [];
+        for (const msg of envelopes) {
+          if (cancelled) return;
+          if (hasSeen(msg.id)) {
+            delivered.push(msg.id);
+            continue;
+          }
+          const contact = getContacts().find((c) => c.id === inbox.contactId)
+            ?? (await restoreContactsIfMissing()).find((c) => c.id === inbox.contactId);
+          if (!contact) continue;
+          try {
+            await processRatchetMessageRef.current(contact, identity, msg.encrypted_payload, msg.iv);
+            markSeen(msg.id);
+            delivered.push(msg.id);
+            playIncomingMessageSound();
+            incomingHandlersRef.current.forEach((handler) => {
+              handler(contact.publicKeyFingerprint, msg.encrypted_payload, msg.iv);
+            });
+          } catch (error) {
+            // Left on the relay so a later attempt can still read it; expires after 7 days.
+            console.error("[relay v2] failed to process message:", error);
+          }
+        }
+        await ackInbox(queueId, inbox.secrets, delivered);
+      } catch (error) {
+        console.warn("[relay v2] fetch failed:", error);
+      } finally {
+        draining.delete(queueId);
+        if (ringAgain.delete(queueId) && !cancelled) void drain(queueId);
+      }
+    };
+    const drainAll = async () => {
+      await Promise.all([...inboxes.keys()].map((queueId) => drain(queueId)));
+    };
+    drainV2InboxesRef.current = drainAll;
+
+    void (async () => {
+      await hydrationReadyRef.current;
+      const contacts = await restoreContactsIfMissing();
+      const { deriveOutboxQueueId } = await import("@/crypto/deriveQueue");
+      for (const contact of contacts) {
+        if (cancelled) return;
+        try {
+          const { inbox, outbox } = await deriveRelayV2Queues(
+            identity.keyPair.privateKey,
+            identity.publicKeyFingerprint,
+            contact.publicKey,
+            contact.publicKeyFingerprint
+          );
+          setOutboxRoute(
+            contact.outboxQueueId ?? await deriveOutboxQueueId(identity.publicKeyFingerprint, contact.publicKeyFingerprint),
+            outbox
+          );
+          const secrets = await deriveInboxSecrets(identity.keyPair.privateKey, inbox);
+          if (cancelled) return;
+          inboxes.set(inbox, { contactId: contact.id, secrets });
+          rememberMyInbox(contact.publicKeyFingerprint, inbox, secrets);
+          if (!(await registerInbox(inbox, secrets))) {
+            console.warn("[relay v2] inbox", inbox.slice(0, 8), "is registered to a different token");
+          }
+          if (cancelled) return;
+          doorbells.push(subscribeDoorbell(secrets, () => void drain(inbox)));
+          void drain(inbox);
+        } catch (error) {
+          console.warn("[relay v2] inbox setup failed for a contact:", error);
+        }
+      }
+    })();
+
+    const wake = () => {
+      if (document.visibilityState === "visible") void drainAll();
+    };
+    const poll = window.setInterval(wake, 30_000);
+    document.addEventListener("visibilitychange", wake);
+    window.addEventListener("online", wake);
+    return () => {
+      cancelled = true;
+      window.clearInterval(poll);
+      document.removeEventListener("visibilitychange", wake);
+      window.removeEventListener("online", wake);
+      doorbells.forEach(unsubscribeDoorbell);
+      drainV2InboxesRef.current = async () => {};
+    };
+  }, [state.identity, relaySubscriptionKey]);
 
   /**
    * Send an encrypted read receipt to a contact through pairwise queues.

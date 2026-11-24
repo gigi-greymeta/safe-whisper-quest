@@ -147,10 +147,6 @@ const Index = () => {
                 <AlertDialogContent className="dark">
                   <AlertDialogHeader>
                     <AlertDialogTitle>Sign out of Phantom?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      Your encrypted vault stays on this device. You will
-                      need your passcode to come back in.
-                    </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
                     <AlertDialogCancel>Cancel</AlertDialogCancel>
@@ -249,12 +245,6 @@ const Index = () => {
               >
                 Create Identity
               </Button>
-              <p className="text-[10px] text-muted-foreground text-center leading-relaxed">
-                Identities are device-bound. Your keypair is generated and stored
-                only on this device — it can't be signed into from another
-                browser. Use the same browser you created the identity in, or
-                export a vault backup from Settings to move it.
-              </p>
             </>
           ) : (
             <>
@@ -293,9 +283,6 @@ const Index = () => {
               >
                 Back
               </Button>
-              <p className="text-[10px] text-muted-foreground text-center">
-                Names are checked against the directory to avoid duplicates.
-              </p>
               <p className="text-[10px] text-muted-foreground text-center">
                 By creating an identity you agree to the{" "}
                 <a href="/legal/terms.html" className="underline">Terms of Service</a> and{" "}

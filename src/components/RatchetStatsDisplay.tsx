@@ -55,11 +55,7 @@ const RatchetStatsDisplay = ({ contactId }: RatchetStatsDisplayProps) => {
           Last rotation: {new Date(stats.lastRatchetAt).toLocaleString()}
         </p>
       )}
-      {stats.dhRatchetCount === 0 && (
-        <p className="text-[10px] text-muted-foreground mt-1">
-          Ratchet will rotate on first bidirectional message exchange.
-        </p>
-      )}
+      {stats.dhRatchetCount === 0}
     </div>
   );
 };

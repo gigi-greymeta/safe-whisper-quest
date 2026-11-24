@@ -47,7 +47,7 @@ const PanicWipeButton = ({ onWipe }: PanicWipeButtonProps) => {
             </AlertDialogTitle>
             <AlertDialogDescription className="space-y-2">
               <span className="block">
-                This will <strong>instantly and permanently</strong> destroy:
+               <strong>Instantly and permanently</strong> destroy:
               </span>
               <span className="block text-destructive/80">
                 • All encryption keys and identity
@@ -59,7 +59,7 @@ const PanicWipeButton = ({ onWipe }: PanicWipeButtonProps) => {
                 <br />• Ratchet states and key pins
               </span>
               <span className="block font-semibold text-destructive">
-                This cannot be undone. There is no recovery.
+                This cannot be undone.
               </span>
             </AlertDialogDescription>
           </AlertDialogHeader>
