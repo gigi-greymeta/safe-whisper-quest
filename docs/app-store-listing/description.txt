@@ -1,0 +1,56 @@
+Phantom is a private messenger built so that nobody but you and the people you talk to can read your conversations. Not us, and not anyone who gets hold of our servers.
+
+NO PHONE NUMBER. NO EMAIL. NO ACCOUNT.
+You don't sign up with a phone number, an email address or a password. Phantom creates a cryptographic identity on your device, and you choose a display name.
+
+END-TO-END ENCRYPTED BY DEFAULT
+Every message and attachment is encrypted on your device before it is sent, with AES-256-GCM and keys agreed using elliptic-curve Diffie–Hellman. Your private key never leaves your phone. Our relay only ever handles ciphertext.
+
+PRIVATE INBOXES
+Only your phone can open your inbox. One-to-one messages are deleted from our relay the moment they're delivered, and anything undelivered is removed automatically after 7 days.
+
+FORWARD SECRECY
+Phantom changes keys as you chat, so even if a key were exposed, past messages stay protected.
+
+ADD AND VERIFY CONTACTS IN PERSON
+Scan a friend's QR code to add them, already verified. Scan each other's safety number to confirm no one is sitting in the middle of your conversation. Phantom warns you if a contact's key changes.
+
+BUILT TO LEAVE NO TRACE
+• Disappearing messages with a timer you choose
+• Messages padded to fixed sizes, so their length gives nothing away
+• Your keys and messages are kept out of cloud backups
+• Burn All Data erases the app in one tap
+
+LOCK IT DOWN
+• Screen lock with a numeric PIN from 4 digits
+• Brute-force protection that locks out repeated wrong guesses
+• Sentry Mode (Premium): set a decoy PIN that silently wipes the app and deletes your account
+• Scrambled messages (Premium): your contact needs Face ID, Touch ID or their PIN to read them, and three wrong tries delete the message
+• App disguise (Premium): make Phantom look like a calculator, notes or weather app
+• Locked notepad (Standard): private notes that open only with Face ID, Touch ID or your PIN. Premium adds a decoy notes list in front
+
+GROUPS AND ATTACHMENTS
+Send photos and documents, protected the same way as your messages. Create encrypted group chats with Standard or Premium.
+
+VOICE CALLS AND VOICE MESSAGES
+Send encrypted voice messages (Standard), or call with end-to-end encryption (Premium). Premium's voice filter changes how you sound: deep, high or robot.
+
+VANISHING GROUPS (PREMIUM)
+Create a group, invite people and share messages, photos and videos that are wiped from our servers after 48 hours. The admin can remove members or delete the group for everyone.
+
+PIN DROPS (PREMIUM)
+Share a location in a chat or group, from where you are or a spot you choose. Pins are end-to-end encrypted, and no map service sees them unless you choose to open one.
+
+NO TRACKING. EVER.
+No ads, no analytics and no third-party tracking SDKs. We don't sell or share your data. Our servers hold only what's needed to deliver your messages: your display name, your public key, and encrypted messages waiting to be delivered.
+
+YOU'RE IN CONTROL
+Delete your account at any time from Settings. Your directory entry, inboxes and pending messages are removed from our servers, and everything is erased from your device.
+
+SUBSCRIPTIONS
+Phantom is free for one-to-one messaging. Standard adds group chats, voice messages and a locked notepad. Premium adds vanishing groups, voice calls, a voice filter, scrambled messages, pin drops, a decoy notes list, app disguise and Sentry Mode.
+
+Standard and Premium are auto-renewing monthly subscriptions. The price is shown in the app before you buy. Payment is charged to your Apple Account when you confirm. The subscription renews automatically unless you cancel it at least 24 hours before the end of the current period. Manage or cancel it at any time in your Apple Account settings.
+
+Terms of Use (EULA): https://safe-whisper-quest.vercel.app/legal/terms.html
+Privacy Policy: https://safe-whisper-quest.vercel.app/legal/privacy.html

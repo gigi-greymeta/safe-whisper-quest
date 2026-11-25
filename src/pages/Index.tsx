@@ -1,4 +1,4 @@
-import { TEST_UNLOCK_ALL } from "@/hooks/useTier";
+import { SHOW_TEST_NOTICE } from "@/hooks/useTier";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useCrypto } from "@/hooks/useCrypto";
@@ -122,7 +122,7 @@ const Index = () => {
             <KeyDisplay fingerprint={state.identity.publicKeyFingerprint} compact />
 
             <div className="space-y-2 pt-2">
-            {TEST_UNLOCK_ALL && (
+            {SHOW_TEST_NOTICE && (
               <p className="text-[11px] text-center text-amber-300">Test build · all features unlocked</p>
             )}
             <Button onClick={() => navigate("/contacts")} className="w-full" size="lg">

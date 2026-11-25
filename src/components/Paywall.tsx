@@ -6,7 +6,7 @@ import { ArrowLeft, Check, Loader2, Ticket } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { useTier, setTier, TEST_UNLOCK_ALL } from "@/hooks/useTier";
+import { useTier, setTier, TEST_UNLOCK_ALL, SHOW_TEST_NOTICE } from "@/hooks/useTier";
 import {
   canRedeemOfferCode,
   getPlanProduct,
@@ -127,7 +127,7 @@ const Paywall = () => {
       </div>
 
       <div className="flex-1 overflow-y-auto p-4 max-w-md w-full mx-auto flex flex-col gap-4">
-        {TEST_UNLOCK_ALL && (
+        {SHOW_TEST_NOTICE && (
           <p className="text-sm text-center rounded-lg border border-amber-500/50 bg-amber-500/10 text-amber-300 p-3">
             Test build: every Premium feature is unlocked without a purchase.
           </p>

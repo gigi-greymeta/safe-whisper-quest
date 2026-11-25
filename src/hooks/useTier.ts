@@ -13,6 +13,12 @@ import { getActiveTier, hasFeature, onSubscriptionChange, storeBillingAvailable,
  */
 export const TEST_UNLOCK_ALL = import.meta.env.VITE_TEST_UNLOCK_ALL === "true";
 
+/**
+ * Screenshot builds (`npm run build:screenshots`) unlock everything like a test build but hide the
+ * "Test build" notices, so store screenshots show the app as a subscriber sees it.
+ */
+export const SHOW_TEST_NOTICE = TEST_UNLOCK_ALL && import.meta.env.VITE_SCREENSHOTS !== "true";
+
 const TIER_CACHE_KEY = "phantom_tier";
 
 function readCachedTier(): Tier {
