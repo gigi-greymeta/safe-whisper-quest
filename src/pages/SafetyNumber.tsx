@@ -1,43 +1,15 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, ShieldCheck, Copy, Check, BadgeCheck, PlayCircle, AlertTriangle } from "lucide-react";
+import { ArrowLeft, ShieldCheck, Copy, Check, BadgeCheck, PlayCircle, AlertTriangle, ScanLine } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useCrypto } from "@/hooks/useCrypto";
 import { getContact, restoreContactsIfMissing, updateContact } from "@/store/contacts";
 import { getRatchetState } from "@/store/ratchetState";
 import QRCodeDisplay from "@/components/QRCode";
-import { useMemo, useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { runSafetyVerification, type SafetyVerificationResult } from "@/lib/safetyVerification";
-
-/**
- * Derive a human-readable safety number from the two long-term identity keys.
- * It must stay identical on both devices before and after messages are exchanged.
- */
-function deriveSafetyNumber(myFingerprint: string, peerFingerprint: string): string {
-  // Sort so both parties compute the same number regardless of who is "me"
-  const [a, b] = [myFingerprint, peerFingerprint].sort();
-  const combined = a + "|" + b;
-
-  // Simple hash → 60-digit numeric safety number (displayed as 12 groups of 5)
-  let hash = 0;
-  const digits: number[] = [];
-  for (let round = 0; round < 60; round++) {
-    const input = combined + ":" + round;
-    let h = 0x811c9dc5;
-    for (let i = 0; i < input.length; i++) {
-      h ^= input.charCodeAt(i);
-      h = Math.imul(h, 0x01000193);
-    }
-    hash = (hash + Math.abs(h)) >>> 0;
-    digits.push(hash % 10);
-  }
-
-  // Format as 12 groups of 5 digits
-  const groups: string[] = [];
-  for (let i = 0; i < 60; i += 5) {
-    groups.push(digits.slice(i, i + 5).join(""));
-  }
-  return groups.join(" ");
-}
+import QRScanner from "@/components/QRScanner";
+import { safetyDigits } from "@/lib/qrCodes";
+import { deriveSafetyNumber, legacySafetyNumber } from "@/crypto/safetyNumber";
 
 const SafetyNumber = () => {
   const { contactId } = useParams<{ contactId: string }>();
@@ -49,6 +21,8 @@ const SafetyNumber = () => {
     return c?.verified ?? false;
   });
   const [testResult, setTestResult] = useState<SafetyVerificationResult | null>(null);
+  const [scanning, setScanning] = useState(false);
+  const [scanResult, setScanResult] = useState<"match" | "mismatch" | "outdated" | null>(null);
 
   const [restoredContact, setRestoredContact] = useState(() => contactId ? getContact(contactId) : undefined);
   const contact = contactId ? state.contacts.find((c) => c.id === contactId) ?? restoredContact ?? getContact(contactId) : undefined;
@@ -56,13 +30,19 @@ const SafetyNumber = () => {
 
   const ratchetState = contactId ? getRatchetState(contactId) : null;
 
-  const safetyNumber = useMemo(() => {
-    if (!identity || !contact) return "";
-    return deriveSafetyNumber(
-      identity.publicKeyFingerprint,
-      contact.publicKeyFingerprint
-    );
-  }, [identity, contact]);
+  const myFingerprint = identity?.publicKeyFingerprint;
+  const peerFingerprint = contact?.publicKeyFingerprint;
+  const [safetyNumber, setSafetyNumber] = useState("");
+  useEffect(() => {
+    if (!myFingerprint || !peerFingerprint) return;
+    let cancelled = false;
+    void deriveSafetyNumber(myFingerprint, peerFingerprint).then((value) => {
+      if (!cancelled) setSafetyNumber(value);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [myFingerprint, peerFingerprint]);
 
   const handleCopy = async () => {
     await navigator.clipboard.writeText(safetyNumber);
@@ -70,9 +50,28 @@ const SafetyNumber = () => {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const handleRunTest = () => {
+  // Both phones derive the same number only if each holds the other's real key,
+  // so scanning their screen and comparing checks the keys in person.
+  const handleScannedSafetyCode = (text: string): string | null => {
+    if (!safetyNumber) return "Still calculating your safety number. Try again in a moment.";
+    const scanned = safetyDigits(text);
+    if (scanned.length !== 60) return "That isn't a safety number code. Ask them to open this screen for your chat.";
+    if (scanned === safetyDigits(safetyNumber)) {
+      if (contactId) updateContact(contactId, { verified: true });
+      setVerified(true);
+      setScanResult("match");
+    } else if (identity && contact && scanned === legacySafetyNumber(identity.publicKeyFingerprint, contact.publicKeyFingerprint)) {
+      // Same keys, older app: its screen still shows the previous number format.
+      setScanResult("outdated");
+    } else {
+      setScanResult("mismatch");
+    }
+    return null;
+  };
+
+  const handleRunTest = async () => {
     if (!identity || !contact || !contactId) return;
-    const result = runSafetyVerification(
+    const result = await runSafetyVerification(
       identity.publicKeyFingerprint,
       contactId,
       contact.publicKeyFingerprint,
@@ -133,7 +132,48 @@ const SafetyNumber = () => {
         </div>
 
         {/* QR Code */}
-        <QRCodeDisplay value={safetyNumber.replace(/\s/g, "")} size={160} />
+        {safetyNumber ? (
+          <QRCodeDisplay value={safetyNumber.replace(/\s/g, "")} />
+        ) : (
+          <div className="h-[236px] w-[236px] rounded-xl border bg-card flex items-center justify-center">
+            <p className="text-xs text-muted-foreground">Calculating…</p>
+          </div>
+        )}
+
+        <Button className="gap-2 w-full max-w-[300px]" disabled={!safetyNumber} onClick={() => { setScanResult(null); setScanning(true); }}>
+          <ScanLine className="h-4 w-4" />
+          Scan their code
+        </Button>
+        {scanResult === "match" && (
+          <div className="w-full max-w-[300px] rounded-lg border border-primary/30 bg-primary/5 p-3 text-xs text-primary flex items-start gap-2">
+            <Check className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+            <span>Safety numbers match. {contact.displayName} is verified.</span>
+          </div>
+        )}
+        {scanResult === "outdated" && (
+          <div className="w-full max-w-[300px] rounded-lg border border-border p-3 text-xs text-muted-foreground flex items-start gap-2">
+            <AlertTriangle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+            <span>
+              {contact.displayName}'s app shows the older safety number format. Ask them to update Phantom, then scan again.
+            </span>
+          </div>
+        )}
+        {scanResult === "mismatch" && (
+          <div className="w-full max-w-[300px] rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-xs text-destructive flex items-start gap-2">
+            <AlertTriangle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+            <span>
+              The numbers don't match. One of you may not have the other's real key. Don't share anything sensitive until you've
+              re-added each other in person.
+            </span>
+          </div>
+        )}
+        <QRScanner
+          open={scanning}
+          onOpenChange={setScanning}
+          title="Scan their safety code"
+          description={`Ask ${contact.displayName} to open this screen for your chat, then point your camera at their code.`}
+          onCode={handleScannedSafetyCode}
+        />
 
         {/* Safety Number Display */}
         <div className="w-full max-w-[300px] bg-card border rounded-xl p-4">
@@ -181,7 +221,7 @@ const SafetyNumber = () => {
           <Button
             variant="outline"
             className="gap-2 w-full"
-            onClick={handleRunTest}
+            onClick={() => void handleRunTest()}
           >
             <PlayCircle className="h-4 w-4" />
             Run verification test

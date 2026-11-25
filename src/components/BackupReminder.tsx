@@ -89,13 +89,7 @@ const BackupReminder = () => {
             <DialogTitle>Back up your vault</DialogTitle>
           </div>
           <DialogDescription className="pt-2 text-left">
-            iOS may wipe browser storage after ~7 days of inactivity. Phantom is
-            zero-knowledge — if your device storage is cleared and you have no
-            backup, your identity and messages are gone forever.
-            <br />
-            <br />
-            Export an encrypted backup now and store it somewhere safe (iCloud
-            Drive, email to yourself, password manager).
+            Export an encrypted backup now and store it somewhere safe.
           </DialogDescription>
         </DialogHeader>
         <DialogFooter className="flex-col gap-2 sm:flex-col">

@@ -177,7 +177,7 @@ const Settings = () => {
               </p>
             </div>
             <div className="flex justify-center">
-              <QRCodeDisplay value={state.identity.publicKeyFingerprint} size={140} />
+              <QRCodeDisplay value={state.identity.publicKeyFingerprint} />
             </div>
             <KeyDisplay fingerprint={state.identity.publicKeyFingerprint} />
           </CardContent>
@@ -246,7 +246,7 @@ const Settings = () => {
                       {!has("panicPin") && <span className="text-[10px] uppercase tracking-wider text-primary">Premium</span>}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      Silently wipe all data and delete your account.
+                      Wipe all data and delete your account.
                     </p>
                   </div>
                   <Switch checked={panicEnabled} onCheckedChange={handleTogglePanic} />
@@ -282,11 +282,7 @@ const Settings = () => {
             "Per-session ephemeral keys (forward secrecy)",
             "TOFU key pinning with MITM warnings; directory keys are checked against their fingerprint",
             "Sentry Mode — a decoy PIN silently wipes all data",
-            "Messages and contacts are stored only on this device",
-            "Direct messages cross the relay encrypted, in a private inbox only your phone can open, and are deleted as soon as they are delivered (undelivered ones after 7 days)",
-            "The relay can't tell who is talking to whom: inbox addresses are derived from a secret only the two people share",
-            "Vanishing group messages are kept encrypted on the relay for 48 hours so members can catch up",
-            "No phone number or email required",
+           "Vanishing group messages are kept encrypted on the relay for 48 hours so members can catch up",
             "Zero analytics or tracking",
           ].map((item) => (
             <div key={item} className="flex items-start gap-2">
@@ -366,7 +362,7 @@ const Settings = () => {
               <AlertDialogTitle>Burn All Data?</AlertDialogTitle>
               <AlertDialogDescription>
                 This will permanently delete all data.
-                This action cannot be undone. Your keypair will be destroyed.
+                This action cannot be undone.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>

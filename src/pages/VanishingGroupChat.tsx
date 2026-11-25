@@ -182,7 +182,7 @@ const VanishingGroupChat = () => {
       <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-2">
         {messages.length === 0 && (
           <p className="text-center text-xs text-muted-foreground mt-16 px-8">
-            Nothing here. Messages, photos and videos from the last 48 hours appear here, then vanish for everyone.
+            Nothing here.
           </p>
         )}
         {messages.map((m) => {
@@ -310,10 +310,6 @@ const VanishingGroupChat = () => {
               </Button>
             </div>
           )}
-
-          <p className="text-[11px] text-muted-foreground mt-4 leading-relaxed">
-            Removing someone gives the group new keys and a new address, and wipes the old messages from the server for everyone.
-          </p>
 
           <Button variant="outline" className="w-full mt-4 border-destructive/50 text-destructive" onClick={() => setConfirm(isAdmin ? "delete" : "leave")}>
             <Trash2 className="h-4 w-4 mr-2" /> {isAdmin ? "Delete group for everyone" : "Leave group"}

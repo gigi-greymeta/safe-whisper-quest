@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
-import { Shield, Smartphone, Download, RotateCcw } from "lucide-react";
+import { Shield, Smartphone, Download, RotateCcw, Glasses } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { HatGlassesIcon } from "@/components/ui/hat-glasses";
 
 const SEEN_KEY = "phantom_first_run_seen_at";
 
 interface Slide {
-  icon: typeof Shield;
+  icon: typeof Shield | typeof HatGlassesIcon | typeof Download;
   title: string;
   body: string;
 }
@@ -14,17 +15,17 @@ const SLIDES: Slide[] = [
   {
     icon: Shield,
     title: "Zero-knowledge by design",
-    body: "Your identity and messages are encrypted on this device. No accounts, no servers reading your data, no recovery emails — only you hold the keys.",
+    body: "Your identity and messages are encrypted on this device. No accounts, no servers reading your data, no recovery emails.",
+  },
+  {
+    icon: HatGlassesIcon,
+    title: "Multiple disguises",
+    body: "Choose how the app appears on your home screen with a decoy cover.",
   },
   {
     icon: Smartphone,
-    title: "Install Phantom as an app",
-    body: "From a normal (non-incognito) browser window, add Phantom to your home screen. The installed app runs in its own private sandbox — more isolated than a private tab, and persistent.",
-  },
-  {
-    icon: Download,
-    title: "Back up your vault",
-    body: "Identities are device-bound — they don't sync. Open Settings → Vault Export to save an encrypted backup you can restore on another device or browser.",
+    title: "ID linked to device only",
+    body: "Identities are device-bound — they don't sync. Secure group and individual chats.",
   },
 ];
 

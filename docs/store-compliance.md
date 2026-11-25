@@ -172,7 +172,8 @@ Privacy** links. The identity creation screen links to the terms and privacy pol
 | iOS | `NSFaceIDUsageDescription` | Unscrambling messages, opening locked notes | `ios/App/App/Info.plist` |
 | Android | `ACCESS_COARSE_LOCATION`, `ACCESS_FINE_LOCATION` | Pin drops (Premium), only on tap | `android/app/src/main/AndroidManifest.xml` |
 | iOS | `NSLocationWhenInUseUsageDescription` | Pin drops (Premium), only on tap | `ios/App/App/Info.plist` |
-| iOS | `NSCameraUsageDescription` | The WKWebView file picker offers "Take Photo" for image attachments. Without this key the app crashes. | `ios/App/App/Info.plist` |
+| Android | `CAMERA` (camera hardware optional) | In-app QR scanner: adding a contact, checking a safety number. Frames are decoded on the device, never stored or sent. Play Data safety: no data collected (on-device processing only). | `android/app/src/main/AndroidManifest.xml` |
+| iOS | `NSCameraUsageDescription` | In-app QR scanner, and the WKWebView file picker's "Take Photo" for image attachments. Without this key the app crashes. | `ios/App/App/Info.plist` |
 | iOS | `NSPhotoLibraryUsageDescription` | Choosing a photo to attach | `ios/App/App/Info.plist` |
 
 No location, contacts, notifications or storage permissions. Android photo attachments go

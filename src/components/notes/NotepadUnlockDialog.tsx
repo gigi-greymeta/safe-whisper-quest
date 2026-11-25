@@ -83,7 +83,7 @@ const NotepadUnlockDialog = ({ open, settings, onClose, onUnlock }: NotepadUnloc
           <DialogDescription>Confirm it's you to open your notes.</DialogDescription>
         </DialogHeader>
         {!allowBiometrics && !(allowPin && pinAvailable) ? (
-          <p className="text-sm text-muted-foreground">Turn on Screen Lock in Settings to set a PIN, then come back.</p>
+          <p className="text-sm text-muted-foreground">Set a Screen Lock in Settings</p>
         ) : (
           <div className="space-y-3">
             {allowBiometrics && (

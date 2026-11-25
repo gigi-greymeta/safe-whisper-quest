@@ -26,7 +26,7 @@ const GetTheApp = ({ os }: GetTheAppProps) => {
         <div className="space-y-2">
           <h1 className="text-xl font-semibold text-foreground">Get Phantom on your phone</h1>
           <p className="text-sm text-muted-foreground">
-            End-to-end encrypted messaging with no phone number, no email and no tracking. On phones and tablets, Phantom runs as an app.
+            End-to-end encrypted messaging with no phone number, no email and no tracking.
           </p>
         </div>
         <div className="w-full flex flex-col gap-3">

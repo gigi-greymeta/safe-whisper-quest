@@ -51,14 +51,14 @@ const DisguiseSettings = () => {
     if (id === "calculator" && (!isLockEnabled() || getAuthMode() !== "pin")) {
       toast({
         title: "Set a PIN first",
-        description: "The calculator opens Phantom when you type your PIN and press =. Turn on Screen Lock with a PIN above.",
+        description: "Type your PIN and press =.",
       });
       return;
     }
     if (id === "weather" && !isLockEnabled()) {
       toast({
         title: "Set a PIN first",
-        description: "The weather screen opens Phantom when you press and hold the temperature, then enter your PIN. Turn on Screen Lock above.",
+        description: "Press and hold the temperature, then enter your PIN.",
       });
       return;
     }

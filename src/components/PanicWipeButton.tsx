@@ -36,14 +36,14 @@ const PanicWipeButton = ({ onWipe }: PanicWipeButtonProps) => {
         size="lg"
         onClick={() => setOpen(true)}
       >
-        <Zap className="h-4 w-4 mr-2" /> Emergency Panic Wipe
+        <Zap className="h-4 w-4 mr-2" /> Panic Pin
       </Button>
 
       <AlertDialog open={open} onOpenChange={setOpen}>
         <AlertDialogContent className="dark">
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2 text-destructive">
-              <Zap className="h-5 w-5" /> Emergency Panic Wipe
+              <Zap className="h-5 w-5" /> Panic Pin
             </AlertDialogTitle>
             <AlertDialogDescription className="space-y-2">
               <span className="block">
@@ -56,7 +56,6 @@ const PanicWipeButton = ({ onWipe }: PanicWipeButtonProps) => {
                 <br />• All group chats
                 <br />• Vault encryption key
                 <br />• PIN and panic PIN
-                <br />• Ratchet states and key pins
               </span>
               <span className="block font-semibold text-destructive">
                 This cannot be undone.

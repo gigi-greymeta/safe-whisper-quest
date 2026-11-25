@@ -59,7 +59,6 @@ const NotepadSettingsDialog = ({ open, settings, decoyAllowed, onDecoyBlocked, o
       <DialogContent className="dark max-w-sm max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Notes settings</DialogTitle>
-          <DialogDescription>Choose how your notes are opened and what others see first.</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
@@ -128,7 +127,7 @@ const NotepadSettingsDialog = ({ open, settings, decoyAllowed, onDecoyBlocked, o
                 {!decoyAllowed && <span className="ml-2 text-[10px] uppercase tracking-wider text-primary">Premium</span>}
               </p>
               <p className="text-[11px] text-muted-foreground leading-relaxed">
-                Notes opens with no PIN to a random set of everyday notes you can edit. To reach your real notes, add a new note with your PIN as its title: the list scrambles into your notes, and the PIN note is never saved.
+                 Add a new note with your PIN as its title to retrieve notes.
               </p>
             </div>
             <Switch

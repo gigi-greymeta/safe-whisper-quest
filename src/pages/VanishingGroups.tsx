@@ -45,7 +45,7 @@ const VanishingGroups = () => {
           <ArrowLeft className="h-5 w-5 text-primary" />
         </Button>
         <div className="flex-1">
-          <h1 className="text-lg font-semibold text-foreground">Vanishing groups</h1>
+          <h1 className="text-lg font-semibold text-foreground">Groups</h1>
           <p className="text-xs text-muted-foreground">Messages, photos and videos are wiped after 48 hours</p>
         </div>
         <Button size="icon" variant="outline" aria-label="New group" onClick={() => (has("vanishingGroups") ? setCreating(true) : navigate("/upgrade"))}>

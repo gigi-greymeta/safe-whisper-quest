@@ -142,10 +142,6 @@ export default function InstallAppPrompt() {
         <DialogContent className="dark max-w-sm">
           <DialogHeader>
             <DialogTitle>Add Phantom to your Home Screen</DialogTitle>
-            <DialogDescription>
-              Phantom installs without an app store. Follow these two steps in
-              your browser.
-            </DialogDescription>
           </DialogHeader>
           <ol className="space-y-3 text-sm text-foreground">
             <li className="flex items-start gap-3">

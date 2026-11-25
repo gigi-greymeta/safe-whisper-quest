@@ -180,9 +180,6 @@ const AdminConfigExport = () => {
         {exporting ? "Encrypting..." : "Encrypt & Download"}
         <Download className="h-3.5 w-3.5 ml-1.5" />
       </Button>
-      <p className="text-[10px] text-muted-foreground">
-        PBKDF2 200k iterations • AES-256-GCM • Random salt + IV per export
-      </p>
     </div>
   );
 };

@@ -73,7 +73,7 @@
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
 	<key>NSCameraUsageDescription</key>
-	<string>Phantom uses the camera only when you choose to take a photo to send. Photos are end-to-end encrypted on your device before sending.</string>
+	<string>Phantom uses the camera only when you scan a contact's QR code or choose to take a photo to send. QR codes are read on your device, and photos are end-to-end encrypted before sending.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Phantom accesses your photos only when you choose one to send. Photos are end-to-end encrypted on your device before sending.</string>
 </dict>

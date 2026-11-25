@@ -94,11 +94,15 @@
          messages (Premium); the microphone is only open during a call or a recording. ACCESS_*_LOCATION: pin drops
          (Premium), read only when the person taps "Drop a pin". USE_BIOMETRIC is merged in by the biometric
          plugin's androidx.biometric dependency (unscrambling messages). Photo attachments use the
-         system picker, which needs no permission. Do not add CAMERA, storage or contacts
+         system picker, which needs no permission. CAMERA: only while the in-app QR scanner is open
+         (adding a contact, checking a safety number); frames are decoded on the device and never
+         stored or sent, and the camera is optional hardware. Do not add storage or contacts
          without updating the privacy policy and the Play Data safety form. -->
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />

@@ -54,7 +54,7 @@ const PinDropDialog = ({ open, onClose, onSend }: PinDropDialogProps) => {
       <DialogContent className="dark max-w-sm">
         <DialogHeader>
           <DialogTitle>Drop a pin</DialogTitle>
-          <DialogDescription>Share a location in this chat. It's end-to-end encrypted like your messages.</DialogDescription>
+          <DialogDescription>Location sharing is end-to-end encrypted.</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-3">

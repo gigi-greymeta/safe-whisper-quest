@@ -28,38 +28,20 @@ async function evaluate(): Promise<CheckItem[]> {
     {
       key: "vault-configured",
       label: "Encrypted vault configured",
-      hint: "Set a PIN in Screen Lock to enable the encrypted vault.",
+      hint: "Set a PIN in Screen Lock.",
       ok: vaultConfigured,
-    },
-    {
-      key: "vault-unlocked",
-      label: "Vault unlocked this session",
-      hint: "Enter your PIN at the lock screen to unlock the vault.",
-      ok: vaultUnlocked,
-    },
-    {
-      key: "identity-hydrated",
-      label: "Identity hydrated into memory",
-      hint: "Reopen the app and unlock — identity is restored from vault/IndexedDB.",
-      ok: !!identity,
     },
     {
       key: "identity-persisted",
       label: "Identity safely stored in vault",
-      hint: "Identity should be encrypted in the vault. If missing, sign out and back in.",
+      hint: "If missing, sign out and back in.",
       ok: identityVaulted,
     },
     {
       key: "contacts-present",
       label: "At least one contact added",
-      hint: "Add a contact from the Contacts screen so you have someone to message.",
+      hint: "Add a contact from the Contacts screen.",
       ok: contacts.length > 0,
-    },
-    {
-      key: "contacts-persisted",
-      label: "Contacts mirrored to vault",
-      hint: "Add or re-save a contact while the vault is unlocked to mirror them.",
-      ok: contactsVaulted,
     },
   ];
 }
@@ -77,7 +59,7 @@ export default function MessagingReadinessChecklist() {
   useEffect(() => { void refresh(); }, [refresh]);
 
   if (!items) {
-    return <p className="text-xs text-muted-foreground">Evaluating prerequisites…</p>;
+    return <p className="text-xs text-muted-foreground">Evaluating...</p>;
   }
 
   const passed = items.filter(i => i.ok).length;
@@ -100,7 +82,7 @@ export default function MessagingReadinessChecklist() {
         </div>
         {!allOk && (
           <p className="text-[10px] text-muted-foreground mt-1">
-            Resolve the unchecked items below — messages may fail with “missing identity or contact” until they pass.
+            Resolve the unchecked items below.
           </p>
         )}
       </div>

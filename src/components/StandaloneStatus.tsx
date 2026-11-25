@@ -44,11 +44,6 @@ export default function StandaloneStatus() {
         <p className="text-[11px] font-medium text-card-foreground leading-tight flex items-center gap-1">
           <Smartphone className="h-3 w-3" /> Browser mode
         </p>
-        <p className="text-[10px] text-muted-foreground leading-tight mt-0.5">
-          Phantom isn't running as a standalone app. If you tapped Install and
-          this still shows, open the home-screen icon (not the browser tab) to
-          launch in app mode.
-        </p>
       </div>
     </div>
   );

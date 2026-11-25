@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useCrypto } from "@/hooks/useCrypto";
-import { ArrowLeft, UserPlus, Shield, Search, Users } from "lucide-react";
+import { ArrowLeft, UserPlus, Shield, Search, Users, ScanLine, QrCode } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -13,6 +13,11 @@ import RelayStatusIndicator from "@/components/RelayStatusIndicator";
 import { useToast } from "@/hooks/use-toast";
 import { checkPinnedKey } from "@/store/keyPinning";
 import { useTier } from "@/hooks/useTier";
+import QRScanner from "@/components/QRScanner";
+import QRCodeDisplay from "@/components/QRCode";
+import { parseIdentityCode } from "@/lib/qrCodes";
+import { lookupPublicKey } from "@/services/relay";
+import { updateContact } from "@/store/contacts";
 
 const Contacts = () => {
   const { state, addContact, addContactFromRegistry, removeContact, searchRegisteredUsers, createGroupChat } = useCrypto();
@@ -28,6 +33,10 @@ const Contacts = () => {
   const [searching, setSearching] = useState(false);
   const [groupName, setGroupName] = useState("");
   const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
+  const [addTab, setAddTab] = useState("search");
+  const [scanning, setScanning] = useState(false);
+  const [showMyCode, setShowMyCode] = useState(false);
+  const [scannedKey, setScannedKey] = useState("");
 
   useEffect(() => {
     if (state.initialized && !state.identity) {
@@ -40,13 +49,56 @@ const Contacts = () => {
   const handleAdd = async () => {
     if (!newName.trim() || !newKey.trim()) return;
     try {
-      await addContact(newName.trim(), newKey.trim());
+      const contact = await addContact(newName.trim(), newKey.trim());
+      // A key that came from scanning their screen was verified in person.
+      if (scannedKey && newKey.trim() === scannedKey) updateContact(contact.id, { verified: true });
+      setScannedKey("");
       setShowAdd(false);
       setNewName("");
       setNewKey("");
       toast({ title: "Contact added", description: `${newName} has been added securely.` });
     } catch {
       toast({ title: "Invalid key", description: "Could not parse the public key.", variant: "destructive" });
+    }
+  };
+
+  /**
+   * A scanned identity code is the contact's full public key, read straight off
+   * their screen, so no server is trusted for it and the contact is marked
+   * verified. The relay directory is asked only for their display name.
+   */
+  const handleScannedCode = async (text: string): Promise<string | null> => {
+    const scanned = parseIdentityCode(text);
+    if (!scanned) return "That isn't a Phantom contact code. Ask them to open Settings > Identity.";
+    if (scanned.fingerprint === state.identity?.publicKeyFingerprint) return "That's your own code.";
+    const existing = state.contacts.find((c) => c.publicKeyFingerprint === scanned.fingerprint);
+    if (existing) {
+      updateContact(existing.id, { verified: true });
+      setShowAdd(false);
+      toast({ title: "Already a contact", description: `${existing.displayName} is now marked as verified in person.` });
+      return null;
+    }
+    const listed = await Promise.race([
+      lookupPublicKey(scanned.fingerprint).catch(() => null),
+      new Promise<null>((resolve) => setTimeout(() => resolve(null), 4000)),
+    ]);
+    const name = typeof listed?.display_name === "string" ? listed.display_name.trim() : "";
+    if (!name) {
+      setNewKey(text.trim());
+      setScannedKey(text.trim());
+      setNewName("");
+      setAddTab("manual");
+      toast({ title: "Code scanned", description: "Enter a name for this contact to finish adding them." });
+      return null;
+    }
+    try {
+      const contact = await addContactFromRegistry(scanned.fingerprint, name, scanned.publicKey);
+      updateContact(contact.id, { verified: true });
+      setShowAdd(false);
+      toast({ title: "Contact added", description: `${name} was added and verified in person.` });
+      return null;
+    } catch (err) {
+      return err instanceof Error ? err.message : "Couldn't add this contact.";
     }
   };
 
@@ -187,7 +239,16 @@ const Contacts = () => {
             <DialogTitle>Add Contact</DialogTitle>
           </DialogHeader>
 
-          <Tabs defaultValue="search" className="w-full">
+          <div className="grid grid-cols-2 gap-2">
+            <Button variant="outline" onClick={() => setScanning(true)}>
+              <ScanLine className="text-primary h-4 w-4 mr-2" /> Scan QR code
+            </Button>
+            <Button variant="outline" onClick={() => setShowMyCode(true)}>
+              <QrCode className="text-primary h-4 w-4 mr-2" /> Show my code
+            </Button>
+          </div>
+
+          <Tabs value={addTab} onValueChange={setAddTab} className="w-full">
             <TabsList className="w-full">
               <TabsTrigger value="search" className="flex-1">
                 <Search className="text-primary h-3 w-3 mr-1" /> Search Relay
@@ -255,6 +316,26 @@ const Contacts = () => {
               </Button>
             </TabsContent>
           </Tabs>
+        </DialogContent>
+      </Dialog>
+
+      <QRScanner
+        open={scanning}
+        onOpenChange={setScanning}
+        title="Scan a contact's code"
+        description="Point your camera at the QR code in their Settings > Identity."
+        onCode={handleScannedCode}
+      />
+
+      <Dialog open={showMyCode} onOpenChange={setShowMyCode}>
+        <DialogContent className="dark max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Your contact code</DialogTitle>
+            <DialogDescription>Let the other person scan this with Phantom to add you.</DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-center">
+            <QRCodeDisplay value={state.identity.publicKeyFingerprint} />
+          </div>
         </DialogContent>
       </Dialog>
 

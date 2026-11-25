@@ -84,7 +84,7 @@ const LockScreen = ({ onUnlock, onPanicWipe, plain, onCancel }: LockScreenProps)
         <div className="flex flex-col items-center gap-3 mb-8">
           {plain ? <Lock className="h-12 w-12 text-muted-foreground" /> : <LogoMark size={72} />}
           <h1 className="text-xl font-semibold text-foreground">{plain ? "Locked" : "Phantom Locked"}</h1>
-          <p className="text-sm text-muted-foreground">Enter your passphrase to unlock</p>
+          <p className="text-sm text-muted-foreground">Enter passphrase to unlock</p>
         </div>
 
         {isLocked && (
@@ -163,7 +163,7 @@ const LockScreen = ({ onUnlock, onPanicWipe, plain, onCancel }: LockScreenProps)
       <div className="flex flex-col items-center gap-3 mb-6">
         {plain ? <Lock className="h-12 w-12 text-muted-foreground" /> : <LogoMark size={72} />}
         <h1 className="text-xl font-semibold text-foreground">{plain ? "Locked" : "Phantom Locked"}</h1>
-        <p className="text-sm text-muted-foreground">Enter your PIN to unlock</p>
+        <p className="text-sm text-muted-foreground">Enter your PIN</p>
       </div>
 
       <div className="flex items-center gap-2 mb-2">
