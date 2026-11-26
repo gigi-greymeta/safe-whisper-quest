@@ -5,7 +5,7 @@ The description doesn't state prices, because the stores show them in local curr
 
 ## Google Play
 
-**App name** (30 max): `Phantom: Private Messenger` (26)
+**App name** (30 max): `Phantom - Secure Chat` (21). Home-screen label under the icon: `Phantom` (Android `title_activity_main`, iOS `CFBundleDisplayName`), which avoids truncation.
 
 **Short description** (80/80):
 
@@ -74,7 +74,7 @@ Privacy Policy: https://YOUR_DOMAIN/legal/privacy.html
 
 ## Apple App Store
 
-**Name** (30 max): `Phantom: Private Messenger` (26)
+**Name** (30 max): `Phantom - Secure Chat` (21)
 
 **Subtitle** (30/30): `Encrypted. Anonymous. Private.`
 

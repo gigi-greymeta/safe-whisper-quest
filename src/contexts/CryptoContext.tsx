@@ -4,6 +4,8 @@ import { getIdentity, createIdentity, clearIdentity, restoreIdentityIfMissing } 
 import { hasSeen, markSeen, clearSeen } from "@/store/seenMessages";
 import type { Contact } from "@/store/contacts";
 import { block, isBlocked } from "@/store/blocked";
+import { sendRequest } from "@/lib/requests";
+import { lastRequestSentAt, markRequestSent, RESEND_AFTER_MS } from "@/store/messageRequests";
 import { getContacts, addContactDurable, removeContact as storeRemoveContact, clearContacts, updateContactDurable, restoreContactsIfMissing } from "@/store/contacts";
 import type { StoredMessage, DisappearTimer } from "@/store/messages";
 import { getMessagesForContact, saveMessage, clearAllMessages, deleteMessagesForContact, purgeExpiredMessages, markMessagesAsRead, markOutgoingAsRead, unwrapStoredMessage } from "@/store/messages";
@@ -943,6 +945,18 @@ export function CryptoProvider({ children }: { children: React.ReactNode }) {
       void refreshOutboxCounts();
     }
 
+    // Until they've replied, they may not have us as a contact, so our messages wait unseen.
+    // Ring their request inbox (at most every few hours) with a preview so they can accept.
+    if (!getMessagesForContact(contactId).some((m) => !m.fromMe) && Date.now() - lastRequestSentAt(contact.publicKeyFingerprint) > RESEND_AFTER_MS) {
+      markRequestSent(contact.publicKeyFingerprint);
+      const preview = plaintext.startsWith("{") ? undefined : plaintext.slice(0, 200);
+      void sendRequest({ fingerprint: identity.publicKeyFingerprint, privateKey: identity.keyPair.privateKey }, contact.publicKeyFingerprint, {
+        t: "contact",
+        name: identity.displayName,
+        preview,
+      });
+    }
+
     syncVault();
     return stored;
   }, [resolveIdentity, state.contacts, state.disappearTimer, ensureContactQueues, syncVault]);
@@ -1599,7 +1613,22 @@ export function CryptoProvider({ children }: { children: React.ReactNode }) {
     const group = storeCreateGroup(name, memberIds, identity.publicKeyFingerprint);
     dispatch({ type: "ADD_GROUP", group });
     syncVault();
+    // Tell each member through their request inbox: they may not have us as a contact yet.
+    const me = { fingerprint: identity.publicKeyFingerprint, privateKey: identity.keyPair.privateKey };
+    for (const c of getContacts().filter((c) => memberIds.includes(c.id))) {
+      void sendRequest(me, c.publicKeyFingerprint, { t: "group_invite", name: identity.displayName, groupId: group.id, groupName: name });
+    }
     return group;
+  }, [syncVault]);
+
+  /** Accepting an invite to a standard group: show it straight away, with the inviter as a member. */
+  const joinGroupChat = useCallback((groupId: string, name: string, inviterContactId: string) => {
+    if (getGroup(groupId)) return;
+    const created = storeCreateGroup(name || "Group", [inviterContactId], "");
+    const groups = getGroups().map((g) => (g.id === created.id ? { ...g, id: groupId } : g));
+    localStorage.setItem("phantom_groups", JSON.stringify(groups));
+    dispatch({ type: "SET_GROUPS", groups: getGroups() });
+    syncVault();
   }, [syncVault]);
 
   /**
@@ -1838,6 +1867,7 @@ export function CryptoProvider({ children }: { children: React.ReactNode }) {
         sendControl: sendControlMessage,
         onControlMessage,
         createGroupChat,
+        joinGroupChat,
         sendGroupMessage,
         getDecryptedGroupMessages,
         deleteGroupChat,

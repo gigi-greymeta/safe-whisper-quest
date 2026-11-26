@@ -1,6 +1,6 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">Phantom</string>
+    <string name="app_name">Phantom - Secure Chat</string>
     <string name="title_activity_main">Phantom</string>
     <string name="package_name">au.com.greymeta.phantom</string>
     <string name="custom_url_scheme">au.com.greymeta.phantom</string>

@@ -25,6 +25,8 @@ const SENSITIVE_KEYS = [
   "phantom_secure_notes",
   "phantom_vanishing_groups",
   "phantom_blocked",
+  "phantom_message_requests",
+  "phantom_requests_sent",
 ];
 
 let vaultKey: CryptoKey | null = null;

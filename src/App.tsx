@@ -37,6 +37,9 @@ import Notepad from "./pages/Notepad.tsx";
 import VanishingGroups from "./pages/VanishingGroups.tsx";
 import VanishingGroupChat from "./pages/VanishingGroupChat.tsx";
 import { VanishingGroupsProvider } from "@/contexts/VanishingGroupsContext";
+import { RequestsProvider } from "@/contexts/RequestsContext";
+import IncomingMessageNotifier from "@/components/IncomingMessageNotifier";
+import PushManager from "@/components/PushManager";
 import NotesBoard from "@/components/notes/NotesBoard";
 import { loadDecoyNotes, saveDecoyNotes, type Note } from "@/store/notes";
 import BackupReminder from "@/components/BackupReminder";
@@ -243,6 +246,8 @@ const AppContent = () => {
     <>
       <BackupReminder />
       <CallScreen />
+      <IncomingMessageNotifier />
+      <PushManager />
       <Routes>
       <Route path="/" element={<Index />} />
       <Route path="/chats" element={<RequireUnlocked><Chats /></RequireUnlocked>} />
@@ -272,7 +277,9 @@ const App = () => (
         <CryptoProvider>
           <CallProvider>
             <VanishingGroupsProvider>
-              <AppContent />
+              <RequestsProvider>
+                <AppContent />
+              </RequestsProvider>
             </VanishingGroupsProvider>
           </CallProvider>
         </CryptoProvider>

@@ -110,6 +110,11 @@ export async function deleteMyInboxFor(contactFingerprint: string) {
   await deleteInbox(inbox.queueId, inbox.secrets);
 }
 
+/** Every inbox this phone currently owns (for push registration). */
+export function listMyInboxes(): { queueId: string; secrets: InboxSecrets }[] {
+  return [...myInboxes.values()];
+}
+
 /** Remove every inbox this phone owns from the server (account deletion / panic wipe). */
 export async function deleteAllMyInboxes() {
   const all = [...myInboxes.entries()];

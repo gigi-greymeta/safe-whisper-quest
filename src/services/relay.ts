@@ -131,7 +131,7 @@ export async function deleteQueue(queueId: string) {
 const PADDING_BUCKETS = [1024, 4096, 16384, 65536]; // 1KB, 4KB, 16KB, 64KB
 
 /** Pad a payload to the next bucket size to prevent size-based traffic analysis */
-function padPayload(payload: string): string {
+export function padPayload(payload: string): string {
   const targetSize = PADDING_BUCKETS.find(b => b >= payload.length + 32) || PADDING_BUCKETS[PADDING_BUCKETS.length - 1];
   const paddingLength = targetSize - payload.length - 32; // 32 chars for envelope
   if (paddingLength <= 0) return JSON.stringify({ d: payload, p: "" });

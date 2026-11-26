@@ -3,3 +3,12 @@ project_id = "onkoibxcvllrzfxzfyou"
 # New sb_publishable_ keys are not JWTs; the function authorises via its own
 # proof of key possession (supabase/functions/_shared/deletionProof.ts).
 verify_jwt = false
+
+[functions.push]
+# The app's publishable key isn't a JWT; the function authorises with the device secret and
+# inbox read tokens instead.
+verify_jwt = false
+
+[functions.send-push]
+# Called only by the database trigger, which sends the x-push-secret header.
+verify_jwt = false

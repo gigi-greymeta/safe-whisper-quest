@@ -14,6 +14,8 @@ import { useCrypto } from "@/hooks/useCrypto";
 import { useTier, SHOW_TEST_NOTICE } from "@/hooks/useTier";
 import { useToast } from "@/hooks/use-toast";
 import { useVanishingGroups } from "@/contexts/VanishingGroupsContext";
+import { useRequests } from "@/contexts/RequestsContext";
+import MessageRequests from "@/components/MessageRequests";
 import { getMessagesForContact } from "@/store/messages";
 import { getGroupMessages } from "@/store/groupMessages";
 import { handleLogoSecretTap } from "@/lib/secretTap";
@@ -35,6 +37,7 @@ function when(timestamp: number): string {
 const Chats = () => {
   const { state, onIncomingMessage, createGroupChat, retryFailedOutbox, checkContactAccounts } = useCrypto();
   const { groups: vanishingGroups, invites } = useVanishingGroups();
+  const { requests } = useRequests();
   const { has } = useTier();
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -112,13 +115,16 @@ const Chats = () => {
 
       <Tabs value={tab} onValueChange={setTab} className="flex-1 min-h-0 flex flex-col">
         <TabsList className="grid grid-cols-2 mx-3 mt-3">
-          <TabsTrigger value="direct">Direct</TabsTrigger>
+          <TabsTrigger value="direct">
+            Direct{requests.length > 0 && <span className="ml-1.5 rounded-full bg-primary px-1.5 text-[10px] text-primary-foreground">{requests.length}</span>}
+          </TabsTrigger>
           <TabsTrigger value="groups">
             Groups{invites.length > 0 && <span className="ml-1.5 rounded-full bg-primary px-1.5 text-[10px] text-primary-foreground">{invites.length}</span>}
           </TabsTrigger>
         </TabsList>
 
         <TabsContent value="direct" className="flex-1 min-h-0 overflow-y-auto p-2 mt-1">
+          <MessageRequests />
           {SHOW_TEST_NOTICE && <p className="text-[11px] text-center text-amber-300 pb-1">Test build · all features unlocked</p>}
           {direct.length === 0 ? (
             <div className="flex flex-col items-center text-center p-8 space-y-3">

@@ -61,6 +61,8 @@ export interface CryptoContextValue {
   sendControl: (contactId: string, body: Record<string, unknown>) => Promise<void>;
   onControlMessage: (handler: ControlMessageHandler) => () => void;
   createGroupChat: (name: string, memberIds: string[]) => Group;
+  /** Show a standard group straight away after accepting an invite to it. */
+  joinGroupChat: (groupId: string, name: string, inviterContactId: string) => void;
   sendGroupMessage: (groupId: string, plaintext: string) => Promise<void>;
   getDecryptedGroupMessages: (groupId: string) => Promise<Array<{ id: string; text: string; fromMe: boolean; senderName: string; timestamp: number }>>;
   deleteGroupChat: (groupId: string) => void;

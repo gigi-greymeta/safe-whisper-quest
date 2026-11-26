@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import RelayStatusIndicator from "@/components/RelayStatusIndicator";
 import { useToast } from "@/hooks/use-toast";
+import { sendRequest } from "@/lib/requests";
 import { checkPinnedKey } from "@/store/keyPinning";
 import QRScanner from "@/components/QRScanner";
 import QRCodeDisplay from "@/components/QRCode";
@@ -33,6 +34,13 @@ const Contacts = () => {
   const { state, addContact, addContactFromRegistry, removeContact, searchRegisteredUsers, checkContactAccounts } = useCrypto();
   const navigate = useNavigate();
   const { toast } = useToast();
+
+  /** Let them know you've added them, so they can accept and see your messages. */
+  const announceTo = (fingerprint: string) => {
+    const me = state.identity;
+    if (!me) return;
+    void sendRequest({ fingerprint: me.publicKeyFingerprint, privateKey: me.keyPair.privateKey }, fingerprint, { t: "contact", name: me.displayName });
+  };
   const [showAdd, setShowAdd] = useState(false);
   const [filter, setFilter] = useState("");
   const [openId, setOpenId] = useState<string | null>(null);
@@ -74,6 +82,7 @@ const Contacts = () => {
     if (!newName.trim() || !newKey.trim()) return;
     try {
       const contact = await addContact(newName.trim(), newKey.trim());
+      announceTo(contact.publicKeyFingerprint);
       // A key that came from scanning their screen was verified in person.
       if (scannedKey && newKey.trim() === scannedKey) updateContact(contact.id, { verified: true });
       setScannedKey("");
@@ -117,6 +126,7 @@ const Contacts = () => {
     }
     try {
       const contact = await addContactFromRegistry(scanned.fingerprint, name, scanned.publicKey);
+      announceTo(contact.publicKeyFingerprint);
       updateContact(contact.id, { verified: true });
       setShowAdd(false);
       toast({ title: "Contact added", description: `${name} was added and verified in person.` });
@@ -157,6 +167,7 @@ const Contacts = () => {
   const handleAddFromRegistry = async (result: { fingerprint: string; display_name: string; public_key_jwk: any }) => {
     try {
       await addContactFromRegistry(result.fingerprint, result.display_name, result.public_key_jwk);
+      announceTo(result.fingerprint);
       setSearchResults((prev) => prev.filter((r) => r.fingerprint !== result.fingerprint));
       setShowAdd(false);
       toast({ title: "Contact added", description: `${result.display_name} connected via anonymous queue.` });

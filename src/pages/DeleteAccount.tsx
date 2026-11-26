@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { useCrypto } from "@/hooks/useCrypto";
 import { deleteIdentityFromServer } from "@/services/relay";
 import { eraseAllLocalData } from "@/lib/eraseDevice";
-import { wipeServerData } from "@/lib/serverWipe";
+import { currentOwner, wipeServerData } from "@/lib/serverWipe";
 
 type Step = "confirm" | "deleting" | "done";
 
@@ -35,8 +35,9 @@ const DeleteAccount = () => {
       return;
     }
 
-    // Clear the chat history of vanishing groups this phone runs; the groups stay active for members.
-    await wipeServerData(null);
+    // Push registration, request inbox, and the history of vanishing groups this phone runs (the
+    // groups stay active for members). The account itself is already gone, so that step is a no-op.
+    await wipeServerData(currentOwner());
 
     // Then destroy every local trace (the same erase as the Reset Wizard and panic wipe).
     await eraseAllLocalData(burnAllData);

@@ -7,8 +7,8 @@ android {
         applicationId "au.com.greymeta.phantom"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 26
-        versionName "1.7.3"
+        versionCode 28
+        versionName "1.8.1"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         // Screenshots and screen recording are blocked (FLAG_SECURE) unless the build sets
         // phantomAllowScreenCapture=true in gradle.properties, e.g. a test build used to

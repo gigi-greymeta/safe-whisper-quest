@@ -26,6 +26,8 @@ import {
 import { newChain, newSigningKeys, pruneChain, randomHex, sha256Hex } from "@/lib/vanishing/crypto";
 import { buildState, lockedOut, readState, type GroupStateBody } from "@/lib/vanishing/state";
 import * as api from "@/lib/vanishing/api";
+import { sendRequest } from "@/lib/requests";
+import { base64ToPublicKey } from "@/crypto/keys";
 
 const STATE_POLL_MS = 20_000;
 /** How often an admin's phone tells the server an admin is still active. */
@@ -75,7 +77,7 @@ const dropGroup = (groupId: string) =>
   updateVanishing((d) => ({ groups: d.groups.filter((g) => g.id !== groupId), invites: d.invites.filter((i) => i.groupId !== groupId) }));
 
 export function VanishingGroupsProvider({ children }: { children: React.ReactNode }) {
-  const { sendControl, onControlMessage, state } = useCrypto();
+  const { sendControl, onControlMessage, state, addContactFromRegistry } = useCrypto();
   const [data, setData] = useState(loadVanishing);
   const [ended, setEnded] = useState<{ name: string; reason: GroupEndReason }[]>([]);
   const myFingerprint = state.identity?.publicKeyFingerprint ?? null;
@@ -249,7 +251,14 @@ export function VanishingGroupsProvider({ children }: { children: React.ReactNod
         .map((c) => c.publicKeyFingerprint);
       if (fps.length === 0) return;
       await publish(group, { invited: Array.from(new Set([...(group.invited ?? []), ...fps])) });
-      await Promise.all(fps.map((fp) => send(fp, { __type: "vg_invite", groupId, name: group.name, adminName: me.displayName, ts: Date.now() })));
+      const sender = { fingerprint: me.publicKeyFingerprint, privateKey: me.keyPair.privateKey };
+      await Promise.all(
+        fps.flatMap((fp) => [
+          // Directly if they have us as a contact, and through their request inbox in case they don't.
+          send(fp, { __type: "vg_invite", groupId, name: group.name, adminName: me.displayName, ts: Date.now() }),
+          sendRequest(sender, fp, { t: "vanishing_invite", name: me.displayName, groupId, groupName: group.name }),
+        ])
+      );
     },
     [isAdmin, publish, send]
   );
@@ -288,11 +297,15 @@ export function VanishingGroupsProvider({ children }: { children: React.ReactNod
       const inv = loadVanishing().invites.find((i) => i.groupId === groupId);
       const me = getIdentity();
       if (!inv || !me) return;
+      // Joining needs the inviter as a contact (the join goes over your private channel with them).
+      if (!contactIdFor(inv.adminFingerprint)) {
+        await addContactFromRegistry(inv.adminFingerprint, inv.adminName || "Group admin", base64ToPublicKey(inv.adminFingerprint));
+      }
       const keys = inv.accepted ?? (await newSigningKeys());
       updateVanishing((d) => ({ ...d, invites: d.invites.map((i) => (i.groupId === groupId ? { ...i, accepted: keys } : i)) }));
       await send(inv.adminFingerprint, { __type: "vg_accept", groupId, name: me.displayName, signPub: keys.pub, ts: Date.now() });
     },
-    [send]
+    [send, addContactFromRegistry]
   );
 
   const declineInvite = useCallback(
