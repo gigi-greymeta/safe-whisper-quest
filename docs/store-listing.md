@@ -13,7 +13,7 @@ The description doesn't state prices, because the stores show them in local curr
 Private, end-to-end encrypted messaging. No phone number, no email, no tracking.
 ```
 
-**Full description** (3994/4000):
+**Full description** (3964/4000):
 
 ```
 Phantom is a private messenger built so that nobody but you and the people you talk to can read your conversations. Not us, and not anyone who gets hold of our servers.
@@ -54,7 +54,7 @@ VOICE CALLS AND VOICE MESSAGES
 Send encrypted voice messages (Standard), or call with end-to-end encryption (Premium). Premium's voice filter changes how you sound: deep, high or robot.
 
 VANISHING GROUPS (PREMIUM)
-Create a group, invite people and share messages, photos and videos that are wiped from our servers after 48 hours. As the admin, you can remove members or delete the group for everyone at any time.
+Name a group, invite people and share messages, photos and videos that are wiped from our servers after 48 hours. Admins can invite, remove members or delete the group.
 
 PIN DROPS (PREMIUM)
 Share a location in a chat or group, from where you are or a spot you choose. Pins are end-to-end encrypted, and no map service sees them unless you choose to open one.

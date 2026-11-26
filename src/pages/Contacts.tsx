@@ -1,18 +1,28 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useCrypto } from "@/hooks/useCrypto";
-import { ArrowLeft, UserPlus, Shield, Search, Users, ScanLine, QrCode } from "lucide-react";
+import { UserPlus, Shield, Search, ScanLine, QrCode, MessageSquare, ShieldCheck, Trash2, UserX, BadgeCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Checkbox } from "@/components/ui/checkbox";
 import ContactCard from "@/components/ContactCard";
+import AppTabBar from "@/components/AppTabBar";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import RelayStatusIndicator from "@/components/RelayStatusIndicator";
 import { useToast } from "@/hooks/use-toast";
 import { checkPinnedKey } from "@/store/keyPinning";
-import { useTier } from "@/hooks/useTier";
 import QRScanner from "@/components/QRScanner";
 import QRCodeDisplay from "@/components/QRCode";
 import { parseIdentityCode } from "@/lib/qrCodes";
@@ -20,19 +30,18 @@ import { lookupPublicKey } from "@/services/relay";
 import { updateContact } from "@/store/contacts";
 
 const Contacts = () => {
-  const { state, addContact, addContactFromRegistry, removeContact, searchRegisteredUsers, createGroupChat } = useCrypto();
+  const { state, addContact, addContactFromRegistry, removeContact, searchRegisteredUsers, checkContactAccounts } = useCrypto();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { has } = useTier();
   const [showAdd, setShowAdd] = useState(false);
-  const [showCreateGroup, setShowCreateGroup] = useState(false);
+  const [filter, setFilter] = useState("");
+  const [openId, setOpenId] = useState<string | null>(null);
+  const [confirmRemove, setConfirmRemove] = useState(false);
   const [newName, setNewName] = useState("");
   const [newKey, setNewKey] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<Array<{ fingerprint: string; display_name: string; public_key_jwk: any }>>([]);
   const [searching, setSearching] = useState(false);
-  const [groupName, setGroupName] = useState("");
-  const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
   const [addTab, setAddTab] = useState("search");
   const [scanning, setScanning] = useState(false);
   const [showMyCode, setShowMyCode] = useState(false);
@@ -44,7 +53,22 @@ const Contacts = () => {
     }
   }, [navigate, state.identity, state.initialized]);
 
+  // Picks up contacts who have deleted their account since the last check.
+  useEffect(() => {
+    void checkContactAccounts();
+  }, [checkContactAccounts]);
+
   if (!state.identity) return null;
+
+  const opened = state.contacts.find((c) => c.id === openId) ?? null;
+  const shown = [...state.contacts]
+    .filter((c) => c.displayName.toLowerCase().includes(filter.trim().toLowerCase()))
+    .sort((a, b) => {
+      // Changed keys first (they need attention), then A to Z.
+      const aMismatch = checkPinnedKey(a.publicKeyFingerprint, a.publicKey) === "mismatch" ? 0 : 1;
+      const bMismatch = checkPinnedKey(b.publicKeyFingerprint, b.publicKey) === "mismatch" ? 0 : 1;
+      return aMismatch - bMismatch || a.displayName.localeCompare(b.displayName);
+    });
 
   const handleAdd = async () => {
     if (!newName.trim() || !newKey.trim()) return;
@@ -147,83 +171,43 @@ const Contacts = () => {
   };
 
   return (
-    <div className="dark flex flex-col min-h-screen bg-background">
+    <div className="dark flex flex-col h-screen bg-background">
       {/* Header */}
-      <div className="flex items-center gap-3 p-4 border-b bg-card/50 backdrop-blur-sm">
-        <Button variant="ghost" size="icon" onClick={() => navigate("/")} aria-label="Back" className="text-foreground hover:text-foreground">
-          <ArrowLeft className="h-5 w-5 text-primary" />
-        </Button>
+      <div className="flex items-center gap-3 px-4 py-3 border-b bg-card/50 backdrop-blur-sm">
         <div className="flex-1">
           <h1 className="text-lg font-semibold text-foreground">Contacts</h1>
           <div className="flex items-center gap-1.5">
-            <p className="text-xs text-muted-foreground">{state.contacts.length} encrypted channels</p>
+            <p className="text-xs text-muted-foreground">{state.contacts.length} {state.contacts.length === 1 ? "contact" : "contacts"}</p>
             <RelayStatusIndicator status={state.relayStatus} compact className="border-0 bg-transparent px-0 py-0" />
           </div>
         </div>
-        <Button size="icon" variant="outline" onClick={() => (has("groupChats") ? setShowCreateGroup(true) : navigate("/upgrade"))} title="Create group" aria-label="Create group" className="text-primary hover:text-primary">
-          <Users className="h-4 w-4" />
-        </Button>
         <Button size="icon" variant="outline" onClick={() => setShowAdd(true)} aria-label="Add contact" className="text-primary hover:text-primary">
           <UserPlus className="h-4 w-4" />
         </Button>
       </div>
 
-      {/* Contact & Group List */}
-      <div className="flex-1 overflow-y-auto p-2">
-        {/* Groups */}
-        {state.groups.length > 0 && (
-          <div className="mb-2">
-            <p className="text-[10px] uppercase tracking-wider text-muted-foreground px-3 mb-1">Groups</p>
-            <div className="space-y-1">
-              {state.groups.map((group) => (
-                <button
-                  key={group.id}
-                  onClick={() => navigate(`/group/${group.id}`)}
-                  className="flex items-center gap-3 w-full rounded-xl p-3 hover:bg-accent/50 transition-colors text-left"
-                >
-                  <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
-                    <Users className="h-5 w-5 text-primary" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-sm text-foreground truncate">{group.name}</p>
-                    <p className="text-xs text-muted-foreground">{group.memberIds.length + 1} members · E2E</p>
-                  </div>
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Contacts */}
+      {/* Address book */}
+      <div className="flex-1 min-h-0 overflow-y-auto p-2">
         {state.contacts.length > 0 && (
-          <div>
-            {state.groups.length > 0 && (
-              <p className="text-[10px] uppercase tracking-wider text-muted-foreground px-3 mb-1">Direct</p>
-            )}
-            <div className="space-y-1">
-              {[...state.contacts]
-                .sort((a, b) => {
-                  const aMismatch = checkPinnedKey(a.publicKeyFingerprint, a.publicKey) === "mismatch" ? 0 : 1;
-                  const bMismatch = checkPinnedKey(b.publicKeyFingerprint, b.publicKey) === "mismatch" ? 0 : 1;
-                  return aMismatch - bMismatch;
-                })
-                .map((contact) => (
-                <ContactCard
-                  key={contact.id}
-                  contact={contact}
-                  onClick={() => navigate(`/chat/${contact.id}`)}
-                />
-              ))}
-            </div>
+          <div className="px-1 pb-2">
+            <Input placeholder="Search contacts" value={filter} onChange={(e) => setFilter(e.target.value)} />
           </div>
         )}
+        <div className="space-y-1">
+          {shown.map((contact) => (
+            <ContactCard key={contact.id} contact={contact} onClick={() => setOpenId(contact.id)} />
+          ))}
+        </div>
+        {state.contacts.length > 0 && shown.length === 0 && (
+          <p className="text-xs text-muted-foreground text-center py-6">No contacts match "{filter.trim()}"</p>
+        )}
 
-        {state.contacts.length === 0 && state.groups.length === 0 && (
-          <div className="flex flex-col items-center justify-center h-full text-center p-8 space-y-3">
+        {state.contacts.length === 0 && (
+          <div className="flex flex-col items-center justify-center text-center p-8 space-y-3">
             <Shield className="h-12 w-12 text-muted-foreground/60" />
             <p className="text-muted-foreground text-sm">No contacts yet</p>
-            <p className="text-muted-foreground text-xs max-w-[200px]">
-              Search for users or add a contact by pasting their public key.
+            <p className="text-muted-foreground text-xs max-w-[220px]">
+              Scan someone's QR code, search for their display name, or paste their public key.
             </p>
             <Button variant="outline" size="sm" onClick={() => setShowAdd(true)}>
               <UserPlus className="h-4 w-4 mr-2" /> Add Contact
@@ -231,6 +215,75 @@ const Contacts = () => {
           </div>
         )}
       </div>
+
+      <AppTabBar />
+
+      {/* Contact details */}
+      <Sheet open={!!opened} onOpenChange={(open) => !open && setOpenId(null)}>
+        <SheetContent side="bottom" className="dark pb-[calc(1.5rem+var(--safe-bottom))]">
+          {opened && (
+            <>
+              <SheetHeader className="text-left">
+                <SheetTitle className="flex items-center gap-1.5">
+                  {opened.displayName}
+                  {opened.verified && !opened.accountDeleted && <BadgeCheck className="h-4 w-4 text-primary" />}
+                </SheetTitle>
+                <SheetDescription className="font-mono text-[11px] break-all">
+                  {opened.publicKeyFingerprint.slice(0, 48)}...
+                </SheetDescription>
+              </SheetHeader>
+              {opened.accountDeleted && (
+                <div className="mt-3 flex gap-2 rounded-lg border border-muted p-3 text-xs text-muted-foreground">
+                  <UserX className="h-4 w-4 shrink-0" />
+                  <span>
+                    {opened.displayName} deleted their Phantom account, so messages can't reach them. Your past chat stays on this phone.
+                    If they made a new account, add them again from their new code.
+                  </span>
+                </div>
+              )}
+              {opened.addedFromGroup && !opened.accountDeleted && (
+                <p className="mt-3 text-xs text-muted-foreground">Added from the group "{opened.addedFromGroup}".</p>
+              )}
+              <div className="mt-4 grid gap-2">
+                <Button onClick={() => navigate(`/chat/${opened.id}`)}>
+                  <MessageSquare className="h-4 w-4 mr-2" /> {opened.accountDeleted ? "View chat" : "Message"}
+                </Button>
+                {!opened.accountDeleted && (
+                  <Button variant="outline" onClick={() => navigate(`/chat/${opened.id}/safety`)}>
+                    <ShieldCheck className="h-4 w-4 mr-2 text-primary" /> Verify safety number
+                  </Button>
+                )}
+                <Button variant="outline" className="text-destructive hover:text-destructive" onClick={() => setConfirmRemove(true)}>
+                  <Trash2 className="h-4 w-4 mr-2" /> Remove contact
+                </Button>
+              </div>
+            </>
+          )}
+        </SheetContent>
+      </Sheet>
+
+      <AlertDialog open={confirmRemove} onOpenChange={setConfirmRemove}>
+        <AlertDialogContent className="dark">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove {opened?.displayName}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This deletes your chat with them from this phone and closes your encrypted channel. You can add them again later.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => {
+                if (opened) removeContact(opened.id);
+                setOpenId(null);
+              }}
+            >
+              Remove
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Add Contact Dialog */}
       <Dialog open={showAdd} onOpenChange={setShowAdd}>
@@ -339,68 +392,6 @@ const Contacts = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Create Group Dialog */}
-      <Dialog open={showCreateGroup} onOpenChange={setShowCreateGroup}>
-        <DialogContent className="dark max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Create Group</DialogTitle>
-            <DialogDescription>
-              Select members for an encrypted group chat.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-3">
-            <Input
-              placeholder="Group name"
-              value={groupName}
-              onChange={(e) => setGroupName(e.target.value)}
-            />
-            {state.contacts.length === 0 ? (
-              <p className="text-xs text-muted-foreground text-center">Add contacts first to create a group.</p>
-            ) : (
-              <div className="space-y-2 max-h-[200px] overflow-y-auto">
-                {state.contacts.map((contact) => (
-                  <label
-                    key={contact.id}
-                    className="flex items-center gap-3 rounded-lg border p-3 cursor-pointer hover:bg-accent/30 transition-colors"
-                  >
-                    <Checkbox
-                      checked={selectedMembers.includes(contact.id)}
-                      onCheckedChange={(checked) => {
-                        setSelectedMembers((prev) =>
-                          checked
-                            ? [...prev, contact.id]
-                            : prev.filter((id) => id !== contact.id)
-                        );
-                      }}
-                    />
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium text-foreground truncate">{contact.displayName}</p>
-                      <p className="text-[10px] font-mono text-muted-foreground truncate">
-                        {contact.publicKeyFingerprint.slice(0, 16)}...
-                      </p>
-                    </div>
-                  </label>
-                ))}
-              </div>
-            )}
-            <Button
-              className="w-full"
-              disabled={!groupName.trim() || selectedMembers.length === 0}
-              onClick={() => {
-                const group = createGroupChat(groupName.trim(), selectedMembers);
-                setShowCreateGroup(false);
-                setGroupName("");
-                setSelectedMembers([]);
-                toast({ title: "Group created", description: `${group.name} with ${group.memberIds.length} members.` });
-                navigate(`/group/${group.id}`);
-              }}
-            >
-              <Users className="h-4 w-4 mr-2" />
-              Create Encrypted Group
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };

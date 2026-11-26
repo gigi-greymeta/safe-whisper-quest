@@ -1,3 +1,4 @@
+import { persistNow } from "@/store/persistNow";
 // PIN/passphrase hashing with PBKDF2 key-stretching, panic wipe support, brute-force rate limiting
 
 export type AuthMode = "pin" | "passphrase";
@@ -266,6 +267,7 @@ export function removePanicPin(): void {
   localStorage.removeItem(PANIC_HASH_KEY);
   localStorage.removeItem(PANIC_SALT_KEY);
   secureEraseKey(PANIC_WIPE_KEY);
+  persistNow();
 }
 
 // ─── Notepad PIN (optional, separate from the app PIN) ──────────────
@@ -291,6 +293,7 @@ export function hasNotepadPin(): boolean {
 export function removeNotepadPin(): void {
   secureEraseKey(NOTEPAD_HASH_KEY);
   secureEraseKey(NOTEPAD_SALT_KEY);
+  persistNow();
 }
 
 // ─── Secure Erase ───────────────────────────────────────────────────
@@ -335,6 +338,7 @@ export function disableLock(): void {
   localStorage.removeItem(LAST_UNLOCK_KEY);
   resetFailedAttempts();
   removePanicPin();
+  persistNow();
 }
 
 export function recordUnlock(): void {

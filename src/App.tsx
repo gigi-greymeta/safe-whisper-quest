@@ -11,22 +11,21 @@ import { useCrypto } from "@/hooks/useCrypto";
 // AppContent is rendered as a child of <CryptoProvider> below.
 import LockScreen from "@/components/LockScreen";
 import RequireUnlocked from "@/components/RequireUnlocked";
-import { isLockEnabled, disableLock, hasPanicPin, verifyPanicPin, verifyPin, recordUnlock, isLockedOut } from "@/store/lock";
+import { isLockEnabled, hasPanicPin, verifyPanicPin, verifyPin, recordUnlock, isLockedOut } from "@/store/lock";
 import { markSessionUnlocked } from "@/store/sessionLock";
 import CalculatorDecoy from "@/components/CalculatorDecoy";
 import WeatherDecoy from "@/components/WeatherDecoy";
 import { titleMatchesAppPin } from "@/lib/notesPinTitle";
 import { getDisguise, type DisguiseId } from "@/lib/disguise";
-import { clearVault, hasVault, hydrateVaultToLocalStorage, lockVault, syncVaultFromLocalStorage, unlockVault } from "@/store/vault";
-import { secureEraseAll, openPanicWipeIdentity, type PanicWipeIdentity } from "@/store/lock";
-import { getIdentity } from "@/store/identity";
-import { deleteIdentityFromServer } from "@/services/relay";
-import { wipeDeviceCaches } from "@/lib/deviceWipe";
-import { clearPinnedKeys } from "@/store/keyPinning";
-import { clearPhantomStorageFromIDB, restorePhantomStorageFromIDB } from "@/store/appPersist";
+import { hasVault, hydrateVaultToLocalStorage, lockVault, syncVaultFromLocalStorage, unlockVault } from "@/store/vault";
+import { openPanicWipeIdentity, type PanicWipeIdentity } from "@/store/lock";
+import { eraseAllLocalData, restartFresh } from "@/lib/eraseDevice";
+import { currentOwner, wipeServerData } from "@/lib/serverWipe";
+import { restorePhantomStorageFromIDB } from "@/store/appPersist";
 import { clearSessionUnlock } from "@/store/sessionLock";
 import Index from "./pages/Index.tsx";
 import Contacts from "./pages/Contacts.tsx";
+import Chats from "./pages/Chats.tsx";
 import Chat from "./pages/Chat.tsx";
 import Settings from "./pages/Settings.tsx";
 import SafetyNumber from "./pages/SafetyNumber.tsx";
@@ -37,7 +36,7 @@ import DeleteAccount from "./pages/DeleteAccount.tsx";
 import Notepad from "./pages/Notepad.tsx";
 import VanishingGroups from "./pages/VanishingGroups.tsx";
 import VanishingGroupChat from "./pages/VanishingGroupChat.tsx";
-import { VanishingGroupsProvider, wipeAdministeredGroups } from "@/contexts/VanishingGroupsContext";
+import { VanishingGroupsProvider } from "@/contexts/VanishingGroupsContext";
 import NotesBoard from "@/components/notes/NotesBoard";
 import { loadDecoyNotes, saveDecoyNotes, type Note } from "@/store/notes";
 import BackupReminder from "@/components/BackupReminder";
@@ -52,13 +51,10 @@ const queryClient = new QueryClient();
 
 // Phone and tablet browsers get a "download the app" page, like Signal. Anyone who already
 // has an identity or vault in this browser still gets in, so they can reach their data.
-/** How long the panic wipe waits for the server to delete the account before wiping locally anyway. */
-const SERVER_WIPE_TIMEOUT_MS = 4000;
-
 const mobileBrowser = Capacitor.isNativePlatform() ? null : detectMobileBrowser(navigator.userAgent, navigator.maxTouchPoints);
 
 const AppContent = () => {
-  const { state, reloadState } = useCrypto();
+  const { state, reloadState, burnAllData } = useCrypto();
   const [locked, setLocked] = useState(false);
   const [wiping, setWiping] = useState(false);
   // Weather disguise: the forecast stays in front until the temperature is held for 2 s.
@@ -141,33 +137,16 @@ const AppContent = () => {
       // from the sealed copy if the vault is locked, or the open identity otherwise.
       // Capped so a slow or missing connection doesn't hold up the local wipe.
       try {
-        let owner: PanicWipeIdentity | null = credential ? await openPanicWipeIdentity(credential) : null;
-        const open = getIdentity();
-        if (!owner && open) owner = { fingerprint: open.publicKeyFingerprint, privateKey: open.keyPair.privateKey };
-        await Promise.race([
-          Promise.allSettled([
-            owner ? deleteIdentityFromServer(owner.fingerprint, owner.privateKey) : Promise.resolve(),
-            // Vanishing groups this device runs are wiped from the server too.
-            wipeAdministeredGroups(),
-          ]),
-          new Promise((resolve) => setTimeout(resolve, SERVER_WIPE_TIMEOUT_MS)),
-        ]);
+        const owner: PanicWipeIdentity | null = (credential ? await openPanicWipeIdentity(credential) : null) ?? currentOwner();
+        await wipeServerData(owner);
       } catch {
         // Offline or the server refused: the local wipe still goes ahead.
       }
-      clearSessionUnlock();
-      try { secureEraseAll(); } catch {}
-      try { clearVault(); } catch {}
-      try { clearPinnedKeys(); } catch {}
-      try { disableLock(); } catch {}
-      try { await clearPhantomStorageFromIDB(); } catch {}
       try { navigator.clipboard.writeText(""); } catch {}
-      try { localStorage.clear(); } catch {}
-      try { sessionStorage.clear(); } catch {}
-      // Then every cache: browser databases, web cache, cookies, and the native WebView/app caches.
-      try { await wipeDeviceCaches(); } catch {}
+      // Every local trace, including the identity/contact mirrors and all caches.
+      await eraseAllLocalData(burnAllData);
       // Hard reload — looks identical to first-time app launch (or the disguise's decoy screen).
-      window.location.replace(window.location.origin + "/");
+      restartFresh();
     });
   };
 
@@ -266,6 +245,7 @@ const AppContent = () => {
       <CallScreen />
       <Routes>
       <Route path="/" element={<Index />} />
+      <Route path="/chats" element={<RequireUnlocked><Chats /></RequireUnlocked>} />
       <Route path="/contacts" element={<RequireUnlocked><Contacts /></RequireUnlocked>} />
       <Route path="/chat/:contactId" element={<RequireUnlocked><Chat /></RequireUnlocked>} />
       <Route path="/chat/:contactId/safety" element={<RequireUnlocked><SafetyNumber /></RequireUnlocked>} />

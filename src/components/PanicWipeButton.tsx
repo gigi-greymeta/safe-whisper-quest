@@ -50,12 +50,13 @@ const PanicWipeButton = ({ onWipe }: PanicWipeButtonProps) => {
                <strong>Instantly and permanently</strong> destroy:
               </span>
               <span className="block text-destructive/80">
-                • All encryption keys and identity
+                • Your account on our server and the messages in vanishing groups you run (if online)
+                <br />• All encryption keys and identity
                 <br />• All contacts and pairwise queues
                 <br />• All messages (sent and received)
                 <br />• All group chats
                 <br />• Vault encryption key
-                <br />• PIN and panic PIN
+                <br />• Notes, PIN, panic PIN and app caches
               </span>
               <span className="block font-semibold text-destructive">
                 This cannot be undone.

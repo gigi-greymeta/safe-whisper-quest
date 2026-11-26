@@ -1,6 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Crown, ImagePlus, Loader2, Mic, Send, Timer, Trash2, UserMinus, UserPlus, Users } from "lucide-react";
+import { ArrowLeft, Crown, Flag, ImagePlus, Loader2, LogOut, Mic, Pencil, Send, Shield, ShieldOff, Timer, Trash2, UserMinus, UserPlus, Users } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import ReportDialog from "@/components/ReportDialog";
+import { isBlocked } from "@/store/blocked";
 import VoiceRecorder from "@/components/VoiceRecorder";
 import { useTier } from "@/hooks/useTier";
 import { Button } from "@/components/ui/button";
@@ -64,9 +68,26 @@ const VanishingGroupChat = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { state } = useCrypto();
-  const { groups, myFingerprint, invite, removeMember, deleteGroup, leaveGroup } = useVanishingGroups();
+  const { groups, myFingerprint, isAdmin: amAdminOf, invite, removeMember, deleteGroup, leaveGroup, renameGroup, setAdmin, refresh } = useVanishingGroups();
+  const [renaming, setRenaming] = useState<string | null>(null);
+  const [busyMember, setBusyMember] = useState<string | null>(null);
+  const [reporting, setReporting] = useState<{ fingerprint: string; name: string } | null>(null);
   const group = groups.find((g) => g.id === groupId);
-  const isAdmin = !!group?.adminToken;
+  const isAdmin = !!group && amAdminOf(group);
+
+  /** Run an admin action, show what went wrong, and pull the latest group state after. */
+  const adminAction = async (key: string, action: () => Promise<void>, done?: string) => {
+    setBusyMember(key);
+    try {
+      await action();
+      if (done) toast({ title: done });
+    } catch (e) {
+      toast({ title: "Couldn't finish", description: e instanceof Error ? e.message : undefined, variant: "destructive" });
+    } finally {
+      setBusyMember(null);
+      void refresh(group?.id);
+    }
+  };
 
   const [messages, setMessages] = useState<VanishingMessage[]>([]);
   const [text, setText] = useState("");
@@ -99,7 +120,9 @@ const VanishingGroupChat = () => {
       if (rows.length === 0) return;
       lastSeen.current = rows[rows.length - 1].created_at;
       const opened = (await Promise.all(rows.map((r) => openMessage(group, r)))).filter((m): m is VanishingMessage => !!m);
-      setMessages((prev) => [...prev, ...opened.filter((m) => !prev.some((p) => p.id === m.id))]);
+      // Posts from people you've blocked are never shown.
+      const visible = opened.filter((m) => !isBlocked(m.from));
+      setMessages((prev) => [...prev, ...visible.filter((m) => !prev.some((p) => p.id === m.id))]);
     } catch (e) {
       console.error("[vanishing] fetch failed", e);
     }
@@ -164,7 +187,7 @@ const VanishingGroupChat = () => {
 
   return (
     <div className="dark flex flex-col h-screen bg-background">
-      <div className="flex items-center gap-3 p-3 border-b bg-card/50 pt-[max(0.75rem,env(safe-area-inset-top))]">
+      <div className="flex items-center gap-3 p-3 border-b bg-card/50">
         <Button variant="ghost" size="icon" onClick={() => navigate("/vanishing")} aria-label="Back">
           <ArrowLeft className="h-5 w-5 text-primary" />
         </Button>
@@ -205,7 +228,7 @@ const VanishingGroupChat = () => {
         })}
       </div>
 
-      <div className="border-t bg-card/50 p-3 flex items-end gap-2 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+      <div className="border-t bg-card/50 p-3 flex items-end gap-2">
         <input
           ref={fileRef}
           type="file"
@@ -260,29 +283,98 @@ const VanishingGroupChat = () => {
         }}
       />
 
+      {reporting && (
+        <ReportDialog
+          open
+          onClose={() => setReporting(null)}
+          context="vanishing_group"
+          person={reporting}
+          recentMessages={messages
+            .filter((m) => m.from === reporting.fingerprint && m.body.kind === "text")
+            .map((m) => ({ from: m.fromName, text: m.body.kind === "text" ? m.body.text : "", at: m.ts }))}
+        />
+      )}
+
       <Sheet open={membersOpen} onOpenChange={setMembersOpen}>
         <SheetContent side="bottom" className="dark max-h-[85vh] overflow-y-auto">
           <SheetHeader>
-            <SheetTitle>Members</SheetTitle>
-          </SheetHeader>
-          <ul className="mt-3 space-y-1">
-            {group.members.map((m) => (
-              <li key={m.fingerprint} className="flex items-center gap-2 rounded p-2">
-                <span className="flex-1 text-sm text-foreground truncate">
-                  {m.name || "Member"}
-                  {m.fingerprint === myFingerprint && " (you)"}
-                </span>
-                {m.fingerprint === group.adminFingerprint ? (
-                  <span className="text-[10px] text-amber-400 flex items-center gap-1"><Crown className="h-3 w-3" /> Admin</span>
-                ) : (
-                  isAdmin && (
-                    <Button size="sm" variant="ghost" className="text-destructive" onClick={() => void removeMember(group.id, m.fingerprint)}>
-                      <UserMinus className="h-4 w-4 mr-1" /> Remove
+            <SheetTitle className="flex items-center gap-2">
+              {renaming === null ? (
+                <>
+                  <span className="truncate">{group.name}</span>
+                  {isAdmin && (
+                    <Button size="icon" variant="ghost" className="h-7 w-7" aria-label="Rename group" onClick={() => setRenaming(group.name)}>
+                      <Pencil className="h-4 w-4 text-primary" />
                     </Button>
-                  )
-                )}
-              </li>
-            ))}
+                  )}
+                </>
+              ) : (
+                <form
+                  className="flex flex-1 gap-2"
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    const name = renaming;
+                    setRenaming(null);
+                    void adminAction("rename", () => renameGroup(group.id, name), "Group renamed");
+                  }}
+                >
+                  <Input value={renaming} maxLength={80} autoFocus onChange={(e) => setRenaming(e.target.value)} aria-label="Group name" />
+                  <Button type="submit" size="sm" disabled={!renaming.trim()}>Save</Button>
+                </form>
+              )}
+            </SheetTitle>
+          </SheetHeader>
+          <p className="text-xs text-muted-foreground mt-1">{group.members.length} members · {group.admins.length} admin{group.admins.length === 1 ? "" : "s"}</p>
+          <ul className="mt-3 space-y-1">
+            {group.members.map((m) => {
+              const memberIsAdmin = group.admins.includes(m.fingerprint);
+              const me = m.fingerprint === myFingerprint;
+              return (
+                <li key={m.fingerprint} className="flex items-center gap-2 rounded p-2">
+                  <span className="flex-1 min-w-0 text-sm text-foreground truncate">
+                    {m.name || "Member"}
+                    {me && " (you)"}
+                  </span>
+                  {memberIsAdmin && (
+                    <span className="text-[10px] text-amber-400 flex items-center gap-1 shrink-0">
+                      <Crown className="h-3 w-3" /> {m.fingerprint === group.adminFingerprint ? "Creator" : "Admin"}
+                    </span>
+                  )}
+                  {busyMember === m.fingerprint && <Loader2 className="h-4 w-4 animate-spin text-primary" />}
+                  {isAdmin && !me && (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button size="sm" variant="ghost" aria-label={`Manage ${m.name || "member"}`} disabled={busyMember !== null}>
+                          <Shield className="h-4 w-4 text-primary" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="dark">
+                        {memberIsAdmin ? (
+                          <DropdownMenuItem onSelect={() => void adminAction(m.fingerprint, () => setAdmin(group.id, m.fingerprint, false), `${m.name || "They"} is no longer an admin`)}>
+                            <ShieldOff className="h-4 w-4 mr-2" /> Remove as admin
+                          </DropdownMenuItem>
+                        ) : (
+                          <DropdownMenuItem onSelect={() => void adminAction(m.fingerprint, () => setAdmin(group.id, m.fingerprint, true), `${m.name || "They"} is now an admin`)}>
+                            <Shield className="h-4 w-4 mr-2" /> Make admin
+                          </DropdownMenuItem>
+                        )}
+                        <DropdownMenuItem
+                          className="text-destructive"
+                          onSelect={() => void adminAction(m.fingerprint, () => removeMember(group.id, m.fingerprint), `${m.name || "Member"} removed`)}
+                        >
+                          <UserMinus className="h-4 w-4 mr-2" /> Remove from group
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  )}
+                  {!me && (
+                    <Button size="sm" variant="ghost" aria-label={`Report ${m.name || "member"}`} onClick={() => setReporting({ fingerprint: m.fingerprint, name: m.name })}>
+                      <Flag className="h-4 w-4 text-primary" />
+                    </Button>
+                  )}
+                </li>
+              );
+            })}
             {(group.invited ?? []).length > 0 && isAdmin && (
               <li className="text-xs text-muted-foreground p-2">{group.invited!.length} invited, not joined yet</li>
             )}
@@ -311,9 +403,18 @@ const VanishingGroupChat = () => {
             </div>
           )}
 
-          <Button variant="outline" className="w-full mt-4 border-destructive/50 text-destructive" onClick={() => setConfirm(isAdmin ? "delete" : "leave")}>
-            <Trash2 className="h-4 w-4 mr-2" /> {isAdmin ? "Delete group for everyone" : "Leave group"}
+          <p className="text-[11px] text-muted-foreground mt-4 leading-relaxed">
+            Messages, photos and videos vanish 48 hours after they're posted. The group stays while at least one admin uses the app; after 48 hours with no admin active, it's removed.
+          </p>
+
+          <Button variant="outline" className="w-full mt-4" onClick={() => setConfirm("leave")}>
+            <LogOut className="h-4 w-4 mr-2" /> Leave group
           </Button>
+          {isAdmin && (
+            <Button variant="outline" className="w-full mt-2 border-destructive/50 text-destructive" onClick={() => setConfirm("delete")}>
+              <Trash2 className="h-4 w-4 mr-2" /> Delete group for everyone
+            </Button>
+          )}
         </SheetContent>
       </Sheet>
 
@@ -324,7 +425,9 @@ const VanishingGroupChat = () => {
             <AlertDialogDescription>
               {confirm === "delete"
                 ? "Every message, photo and video is wiped from the server now, and the group disappears for all members."
-                : "You'll stop seeing messages, and the admin is told you've left."}
+                : isAdmin
+                  ? "You'll stop seeing messages and stop being an admin. The group carries on for everyone else."
+                  : "You'll stop seeing messages, and the admins are told you've left."}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

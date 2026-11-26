@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import { User, ChevronRight, BadgeCheck, AlertTriangle } from "lucide-react";
+import { User, UserX, ChevronRight, BadgeCheck, AlertTriangle } from "lucide-react";
 import { checkPinnedKey } from "@/store/keyPinning";
 import type { Contact } from "@/store/contacts";
 
@@ -11,7 +11,8 @@ interface ContactCardProps {
 
 const ContactCard = ({ contact, onClick, lastMessage }: ContactCardProps) => {
   const pinStatus = checkPinnedKey(contact.publicKeyFingerprint, contact.publicKey);
-  const keyMismatch = pinStatus === "mismatch";
+  const deleted = !!contact.accountDeleted;
+  const keyMismatch = !deleted && pinStatus === "mismatch";
 
   return (
     <button
@@ -25,9 +26,11 @@ const ContactCard = ({ contact, onClick, lastMessage }: ContactCardProps) => {
       <div className="relative">
         <div className={cn(
           "h-12 w-12 rounded-full flex items-center justify-center",
-          keyMismatch ? "bg-destructive/10" : "bg-primary/10"
+          keyMismatch ? "bg-destructive/10" : deleted ? "bg-muted" : "bg-primary/10"
         )}>
-          {keyMismatch ? (
+          {deleted ? (
+            <UserX className="h-5 w-5 text-muted-foreground" />
+          ) : keyMismatch ? (
             <AlertTriangle className="h-5 w-5 text-destructive" />
           ) : (
             <User className="h-5 w-5 text-primary" />
@@ -41,7 +44,7 @@ const ContactCard = ({ contact, onClick, lastMessage }: ContactCardProps) => {
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1">
           <p className="font-medium text-sm text-foreground truncate">{contact.displayName}</p>
-          {contact.verified && !keyMismatch && (
+          {contact.verified && !keyMismatch && !deleted && (
             <BadgeCheck className="h-3.5 w-3.5 text-primary shrink-0" />
           )}
           {keyMismatch && (
@@ -52,7 +55,9 @@ const ContactCard = ({ contact, onClick, lastMessage }: ContactCardProps) => {
           "text-xs truncate",
           keyMismatch ? "text-destructive/70" : "text-muted-foreground"
         )}>
-          {keyMismatch
+          {deleted
+            ? "Account deleted"
+            : keyMismatch
             ? "⚠ Identity key mismatch — verify contact"
             : lastMessage || `Key: ${contact.publicKeyFingerprint.slice(0, 12)}...`}
         </p>

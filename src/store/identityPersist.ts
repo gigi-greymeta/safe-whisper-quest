@@ -1,3 +1,4 @@
+import { isWiping } from "@/store/wipeGuard";
 // Mirrors the identity to IndexedDB so it survives browsers/contexts that
 // aggressively clear localStorage (DuckDuckGo, Safari Private, Brave Strict).
 // On startup we read from BOTH stores and reconcile, so the user never sees
@@ -24,6 +25,10 @@ function openDb(): Promise<IDBDatabase> {
 export async function mirrorIdentityToIDB(identity: Identity): Promise<void> {
   try {
     const db = await openDb();
+    if (isWiping()) {
+      db.close();
+      return;
+    }
     await new Promise<void>((resolve, reject) => {
       const tx = db.transaction(STORE, "readwrite");
       tx.objectStore(STORE).put(identity, KEY);

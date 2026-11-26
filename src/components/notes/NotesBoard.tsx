@@ -70,7 +70,7 @@ const NotesBoard = ({ notes, onChange, title, onTitleLongPress, onBack, actions,
   if (editing) {
     return (
       <div className="dark flex flex-col h-screen bg-background">
-        <div className="flex items-center gap-2 p-3 border-b pt-[max(0.75rem,env(safe-area-inset-top))]">
+        <div className="flex items-center gap-2 p-3 border-b">
           <Button
             variant="ghost"
             size="icon"
@@ -103,7 +103,7 @@ const NotesBoard = ({ notes, onChange, title, onTitleLongPress, onBack, actions,
           onChange={(e) => setEditing({ ...editing, body: e.target.value })}
           placeholder="Start writing…"
           autoFocus={!editing.body}
-          className="flex-1 resize-none bg-background p-4 text-sm leading-6 text-foreground focus:outline-none pb-[max(1rem,env(safe-area-inset-bottom))]"
+          className="flex-1 resize-none bg-background p-4 text-sm leading-6 text-foreground focus:outline-none"
         />
       </div>
     );
@@ -113,7 +113,7 @@ const NotesBoard = ({ notes, onChange, title, onTitleLongPress, onBack, actions,
 
   return (
     <div className="dark flex flex-col h-screen bg-background">
-      <div className="flex items-center gap-2 p-3 border-b pt-[max(0.75rem,env(safe-area-inset-top))]">
+      <div className="flex items-center gap-2 p-3 border-b">
         {onBack && (
           <Button variant="ghost" size="icon" onClick={onBack} aria-label="Back">
             <ArrowLeft className="h-5 w-5 text-primary" />
@@ -151,7 +151,7 @@ const NotesBoard = ({ notes, onChange, title, onTitleLongPress, onBack, actions,
         )}
       </div>
 
-      <div className="p-4 flex justify-end pb-[max(1rem,env(safe-area-inset-bottom))]">
+      <div className="p-4 flex justify-end">
         <Button
           size="icon"
           className="h-14 w-14 rounded-full shadow-lg"

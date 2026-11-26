@@ -108,7 +108,7 @@ const PinSetup = ({ onComplete, onSkip, mode = "main" }: PinSetupProps) => {
       : "Enter the same PIN again to confirm";
 
   return (
-    <div className="dark fixed inset-0 z-[100] flex flex-col items-center justify-center bg-background">
+    <div className="dark fixed inset-0 z-[100] flex flex-col pt-[var(--safe-top)] pb-[var(--safe-bottom)] items-center justify-center bg-background">
       <div className="flex flex-col items-center gap-3 mb-6">
         <div className={cn(
           "h-16 w-16 rounded-full flex items-center justify-center",

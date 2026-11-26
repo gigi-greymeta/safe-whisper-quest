@@ -40,5 +40,23 @@ export async function fetchMediaChunk(queueId: string, mediaId: string, index: n
   return rows[0] ?? null;
 }
 
+/** Admin only: write the signed group state; optionally replace the admin token. */
+export const setState = (queueId: string, adminToken: string, state: string, newAdminTokenHash?: string) =>
+  call<boolean>("vg_set_state", { p_queue_id: queueId, p_admin_token: adminToken, p_state: state, p_new_admin_token_hash: newAdminTokenHash ?? null });
+
+/** Whether the group still exists on the server, and its signed state (null before the first write). */
+export async function getState(queueId: string): Promise<{ exists: boolean; state: string | null }> {
+  const rows = await call<{ queue_exists: boolean; state: string | null }[]>("vg_get_state", { p_queue_id: queueId });
+  return { exists: !!rows[0]?.queue_exists, state: rows[0]?.state ?? null };
+}
+
+/** Admin only: "still active", so the group isn't removed after 48 hours without an admin. */
+export const adminPing = (queueId: string, adminToken: string) =>
+  call<boolean>("vg_admin_ping", { p_queue_id: queueId, p_admin_token: adminToken });
+
+/** Admin only: wipe a group's messages and media but keep the group itself. */
+export const clearQueue = (queueId: string, adminToken: string) =>
+  call<boolean>("vg_clear_queue", { p_queue_id: queueId, p_admin_token: adminToken });
+
 export const deleteQueue = (queueId: string, adminToken: string) =>
   call<boolean>("vg_delete_queue", { p_queue_id: queueId, p_admin_token: adminToken });

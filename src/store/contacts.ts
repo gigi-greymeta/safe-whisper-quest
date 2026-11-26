@@ -52,6 +52,10 @@ export interface Contact {
   outboxQueueId?: string;
   /** Safety number verified */
   verified?: boolean;
+  /** They deleted their Phantom account: their key is gone from the directory, so nothing can reach them. */
+  accountDeleted?: boolean;
+  /** Name of the group this contact was added through, when they weren't added directly. */
+  addedFromGroup?: string;
 }
 
 export function getContacts(): Contact[] {

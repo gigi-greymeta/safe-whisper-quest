@@ -141,10 +141,6 @@ const VaultExport = () => {
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center gap-1.5">
-        <Shield className="h-3.5 w-3.5 text-primary" />
-        <p className="text-xs font-semibold text-foreground">Vault Backup</p>
-      </div>
       <p className="text-[11px] text-muted-foreground">
         Export your encrypted vault for offline backup.
       </p>

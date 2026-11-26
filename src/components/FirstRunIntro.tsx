@@ -63,7 +63,7 @@ export default function FirstRunIntro({ onDone }: { onDone: () => void }) {
   const isLast = step === SLIDES.length - 1;
 
   return (
-    <div className="dark fixed inset-0 z-50 flex flex-col bg-background">
+    <div className="dark fixed inset-0 z-50 flex flex-col pt-[var(--safe-top)] pb-[var(--safe-bottom)] bg-background">
       <div className="flex justify-end p-4">
         <Button
           variant="ghost"

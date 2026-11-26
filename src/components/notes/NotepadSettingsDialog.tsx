@@ -58,7 +58,7 @@ const NotepadSettingsDialog = ({ open, settings, decoyAllowed, onDecoyBlocked, o
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="dark max-w-sm max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Notes settings</DialogTitle>
+          <DialogTitle className="text-primary">Notes settings</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4">
@@ -68,7 +68,7 @@ const NotepadSettingsDialog = ({ open, settings, decoyAllowed, onDecoyBlocked, o
               {UNLOCK_OPTIONS.map((o) => (
                 <div key={o.value} className="flex items-center gap-2">
                   <RadioGroupItem value={o.value} id={`unlock-${o.value}`} />
-                  <Label htmlFor={`unlock-${o.value}`} className="text-sm font-normal">{o.label}</Label>
+                  <Label htmlFor={`unlock-${o.value}`} className="text-sm text-white/70 font-normal">{o.label}</Label>
                 </div>
               ))}
             </RadioGroup>
@@ -84,7 +84,7 @@ const NotepadSettingsDialog = ({ open, settings, decoyAllowed, onDecoyBlocked, o
             <RadioGroup value={settings.pinSource} onValueChange={(v) => onChange({ ...settings, pinSource: v as NotepadSettings["pinSource"] })}>
               <div className="flex items-center gap-2">
                 <RadioGroupItem value="app" id="pin-app" />
-                <Label htmlFor="pin-app" className="text-sm font-normal">Same as my app PIN</Label>
+                <Label htmlFor="pin-app" className="text-sm text-white/70 font-normal">Same as my app PIN</Label>
               </div>
               <div className="flex items-center gap-2">
                 <RadioGroupItem value="notepad" id="pin-notepad" disabled={!hasNotepadPin()} />

@@ -4,6 +4,7 @@
 // even if the device is later compromised.
 
 import { epochEncrypt, epochDecrypt } from "@/crypto/epochKeys";
+import { persistNow } from "@/store/persistNow";
 
 const MESSAGES_KEY = "phantom_messages";
 
@@ -116,6 +117,8 @@ export function deleteMessagesForContact(contactId: string): void {
 export function deleteMessage(id: string): void {
   const messages = getAllMessages().filter((m) => m.id !== id);
   localStorage.setItem(MESSAGES_KEY, JSON.stringify(messages));
+  // Scrambled messages deleted after 3 failed unlocks must not come back from a backup copy.
+  persistNow();
 }
 
 /** Count one failed unscramble attempt; returns the new total. */

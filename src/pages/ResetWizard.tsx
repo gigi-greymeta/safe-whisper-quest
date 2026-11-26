@@ -7,17 +7,16 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
-import { clearVault } from "@/store/vault";
-import { secureEraseAll, disableLock } from "@/store/lock";
-import { clearPinnedKeys } from "@/store/keyPinning";
-import { clearPhantomStorageFromIDB } from "@/store/appPersist";
-import { clearSessionUnlock } from "@/store/sessionLock";
+import { useCrypto } from "@/hooks/useCrypto";
+import { eraseAllLocalData, restartFresh } from "@/lib/eraseDevice";
+import { currentOwner, wipeServerData } from "@/lib/serverWipe";
 
 type Step = "intro" | "backup" | "confirm" | "wiping" | "done";
 
 const ResetWizard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { burnAllData } = useCrypto();
   const [step, setStep] = useState<Step>("intro");
   const [ack1, setAck1] = useState(false);
   const [ack2, setAck2] = useState(false);
@@ -47,45 +46,24 @@ const ResetWizard = () => {
   const runWipe = async () => {
     setStep("wiping");
     setProgress([]);
-    // Defer between steps so the user sees progress in mobile/privacy browsers.
-    const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
-
-    addProgress("Clearing session unlock…");
-    clearSessionUnlock();
-    await wait(120);
-
-    addProgress("Securely erasing local vault…");
-    try { secureEraseAll(); } catch {}
-    try { clearVault(); } catch {}
-    await wait(180);
-
-    addProgress("Removing pinned contact keys…");
-    try { clearPinnedKeys(); } catch {}
-    await wait(120);
-
-    addProgress("Disabling screen lock…");
-    try { disableLock(); } catch {}
-    await wait(120);
-
-    addProgress("Clearing IndexedDB snapshot…");
-    try { await clearPhantomStorageFromIDB(); } catch {}
-    await wait(150);
-
-    addProgress("Wiping browser storage…");
-    try { localStorage.clear(); } catch {}
-    try { sessionStorage.clear(); } catch {}
-    await wait(150);
-
+    addProgress("Deleting your account on the server…");
+    // Frees your display name for the new identity and removes your directory entry,
+    // inbox and waiting messages. Best effort: offline, the local reset still goes ahead.
+    const deleted = await wipeServerData(currentOwner());
+    if (!deleted) addProgress("Couldn't reach the server; your old directory entry may remain.");
+    addProgress("Stopping the connection and clearing your identity, contacts and messages…");
+    // The full erase: realtime and in-memory copies first, then every storage area,
+    // including the separate identity and contact mirrors that used to survive a reset.
+    await eraseAllLocalData(burnAllData);
+    addProgress("Removing your screen lock, vault and cached data…");
     addProgress("Reset complete.");
-    await wait(400);
+    // Short pause so the steps are readable, then restart; nothing is left to restore.
+    await new Promise((r) => setTimeout(r, 900));
     setStep("done");
   };
 
-  const handleFinish = () => {
-    // Hard reload — guarantees a clean React tree and re-runs all bootstrap
-    // logic in privacy browsers (Dolphin, Focus) that aggressively cache state.
-    window.location.replace(window.location.origin + "/");
-  };
+  // Hard reload: a clean React tree, and bootstrap re-runs with nothing to restore.
+  const handleFinish = restartFresh;
 
   return (
     <div className="dark flex flex-col min-h-screen bg-background">
@@ -117,7 +95,8 @@ const ResetWizard = () => {
                   <li>All contacts and pinned safety numbers</li>
                   <li>All chat history and group messages</li>
                   <li>Screen lock PIN and sentry credential</li>
-                  <li>Encrypted vault and cached IndexedDB snapshot</li>
+                  <li>Encrypted vault, cached snapshots and app caches</li>
+                  <li>Your account on our server (directory entry, inbox and waiting messages) and the messages in vanishing groups you run, if you're online. The groups stay open for their members.</li>
                 </ul>
               </div>
               <Button className="w-full" onClick={() => setStep("backup")}>

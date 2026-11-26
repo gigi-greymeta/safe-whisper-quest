@@ -1,3 +1,4 @@
+import { isWiping } from "@/store/wipeGuard";
 const DB_NAME = "phantom_app_state_db";
 const STORE_NAME = "app_state";
 const SNAPSHOT_KEY = "snapshot";
@@ -62,6 +63,10 @@ export async function mirrorPhantomStorageToIDB(): Promise<void> {
       req.onerror = () => reject(req.error);
     });
     const snapshot = readLocalSnapshot();
+    if (isWiping()) {
+      db.close();
+      return;
+    }
     for (const key of PROTECTED_KEYS) {
       const vaultKey = `${VAULT_PREFIX}${key}`;
       if (snapshot[key] === undefined && snapshot[vaultKey] === undefined && existing?.[vaultKey] !== undefined) {

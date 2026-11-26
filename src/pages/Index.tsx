@@ -1,6 +1,6 @@
 import { SHOW_TEST_NOTICE } from "@/hooks/useTier";
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 import { useCrypto } from "@/hooks/useCrypto";
 import { LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -25,30 +25,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import phantomLogo from "@/assets/phantom-logo.jpg";
-import { enableDebugConsole, disableDebugConsole, isDebugConsoleEnabled } from "@/lib/debugConsole";
-import { toast } from "@/hooks/use-toast";
-
-let __logoTapCount = 0;
-let __logoTapTimer: ReturnType<typeof setTimeout> | null = null;
-const handleLogoSecretTap = () => {
-  __logoTapCount += 1;
-  if (__logoTapTimer) clearTimeout(__logoTapTimer);
-  __logoTapTimer = setTimeout(() => {
-    __logoTapCount = 0;
-  }, 2500);
-  if (__logoTapCount >= 5) {
-    __logoTapCount = 0;
-    if (__logoTapTimer) clearTimeout(__logoTapTimer);
-    if (isDebugConsoleEnabled()) {
-      disableDebugConsole();
-      try { toast({ title: "Debug console disabled" }); } catch {}
-    } else {
-      void enableDebugConsole()
-        .then(() => { try { toast({ title: "Debug console enabled", description: "Tap the bug icon to view logs." }); } catch {} })
-        .catch(() => { try { toast({ title: "Failed to load debug console", variant: "destructive" }); } catch {} });
-    }
-  }
-};
+import { handleLogoSecretTap } from "@/lib/secretTap";
 
 const LogoMark = ({ size = 96 }: { size?: number }) => (
   <button
@@ -97,83 +74,8 @@ const Index = () => {
   // by design — there is no server-side account to sign into from elsewhere.
   const canUnlockExisting = hasVault() || isLockEnabled();
 
-  // If identity exists, show identity card and navigate options
-  if (state.identity) {
-    return (
-      <div className="dark flex flex-col min-h-screen bg-background">
-        <div className="flex-1 flex flex-col items-center justify-center p-6 space-y-6">
-          <div className="flex flex-col items-center gap-3 text-primary">
-            <LogoMark size={88} />
-            <h1 className="text-2xl font-bold text-foreground">Phantom Chat</h1>
-          </div>
-
-          <div className="w-full max-w-sm space-y-4">
-            <div className="text-center space-y-1">
-              <p className="text-lg font-semibold text-foreground">{state.identity.displayName}</p>
-              <p className="text-xs text-muted-foreground">Your identity is secured locally</p>
-              <RelayStatusIndicator
-                status={state.relayStatus}
-                pendingCount={state.outboxPending}
-                failedCount={state.outboxFailed}
-                onRetry={retryFailedOutbox}
-              />
-            </div>
-
-            <KeyDisplay fingerprint={state.identity.publicKeyFingerprint} compact />
-
-            <div className="space-y-2 pt-2">
-            {SHOW_TEST_NOTICE && (
-              <p className="text-[11px] text-center text-amber-300">Test build · all features unlocked</p>
-            )}
-            <Button onClick={() => navigate("/contacts")} className="w-full" size="lg">
-              Open Contacts
-            </Button>
-            <Button onClick={() => navigate("/vanishing")} variant="outline" className="w-full text-primary hover:text-primary">
-              Vanishing groups
-            </Button>
-            <Button onClick={() => navigate("/notes")} variant="outline" className="w-full text-primary hover:text-primary">
-              Notes
-            </Button>
-            <Button onClick={() => navigate("/settings")} variant="outline" className="w-full text-primary hover:text-primary">
-              Settings
-            </Button>
-            {(isLockEnabled() || hasVault()) && (
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button variant="outline" className="w-full text-destructive hover:text-destructive">
-                    <LogOut className="h-4 w-4 mr-2" /> Sign Out
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent className="dark">
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Sign out of Phantom?</AlertDialogTitle>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={() => void signOut()}>
-                      Sign Out
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-            )}
-              <Button
-                onClick={() => navigate("/reset")}
-                variant="ghost"
-                className="w-full text-xs text-muted-foreground"
-                size="sm"
-              >
-                Reset & Start Over
-              </Button>
-            </div>
-
-            {ephemeral ? <EphemeralSessionWarning /> : <InstallAppPrompt />}
-          </div>
-        </div>
-      {showIntro && <FirstRunIntro onDone={() => setShowIntro(false)} />}
-      </div>
-    );
-  }
+  // Signed in: the main screen is Chats.
+  if (state.identity) return <Navigate to="/chats" replace />;
 
   const handleCreate = async () => {
     if (!displayName.trim()) return;

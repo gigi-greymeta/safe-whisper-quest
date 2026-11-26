@@ -98,10 +98,12 @@ const ChatInput = ({ onSend, onSendFile, onTyping, disabled, scramble, onToggleS
         </div>
       )}
 
-      <div className="flex items-end gap-2 p-3">
-        <div className="flex items-center gap-1 text-muted-foreground">
-          <Lock className="h-3 w-3" />
+      {/* Attachments and options sit above the text box, so the text box gets the full width on phones. */}
+      <div className="flex items-center gap-1 px-2 pt-1.5">
+        <div className="flex items-center gap-1 px-2 text-[10px] text-muted-foreground">
+          <Lock className="h-3 w-3" /> Encrypted
         </div>
+        <div className="flex-1" />
         {onSendFile && (
           <>
             <input
@@ -114,7 +116,7 @@ const ChatInput = ({ onSend, onSendFile, onTyping, disabled, scramble, onToggleS
             <Button
               variant="ghost"
               size="icon"
-              className="h-10 w-10 shrink-0"
+              className="h-9 w-9 shrink-0"
               onClick={() => fileInputRef.current?.click()}
               disabled={disabled}
             >
@@ -123,12 +125,12 @@ const ChatInput = ({ onSend, onSendFile, onTyping, disabled, scramble, onToggleS
           </>
         )}
         {onVoice && (
-          <Button variant="ghost" size="icon" className="h-10 w-10 shrink-0" onClick={onVoice} disabled={disabled} aria-label="Voice message" title="Voice message">
+          <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0" onClick={onVoice} disabled={disabled} aria-label="Voice message" title="Voice message">
             <Mic className="h-4 w-4" />
           </Button>
         )}
         {onDropPin && (
-          <Button variant="ghost" size="icon" className="h-10 w-10 shrink-0" onClick={onDropPin} disabled={disabled} aria-label="Drop a pin" title="Drop a pin">
+          <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0" onClick={onDropPin} disabled={disabled} aria-label="Drop a pin" title="Drop a pin">
             <MapPin className="h-4 w-4" />
           </Button>
         )}
@@ -136,7 +138,7 @@ const ChatInput = ({ onSend, onSendFile, onTyping, disabled, scramble, onToggleS
           <Button
             variant="ghost"
             size="icon"
-            className={cn("h-10 w-10 shrink-0", scramble && "text-primary bg-primary/10")}
+            className={cn("h-9 w-9 shrink-0", scramble && "text-primary bg-primary/10")}
             onClick={onToggleScramble}
             disabled={disabled}
             aria-pressed={!!scramble}
@@ -146,6 +148,8 @@ const ChatInput = ({ onSend, onSendFile, onTyping, disabled, scramble, onToggleS
             <EyeOff className="h-4 w-4" />
           </Button>
         )}
+      </div>
+      <div className="flex items-end gap-2 px-3 pb-3 pt-1.5">
         <textarea
           value={text}
           onChange={handleChange}
@@ -154,7 +158,7 @@ const ChatInput = ({ onSend, onSendFile, onTyping, disabled, scramble, onToggleS
           disabled={disabled}
           rows={1}
           className={cn(
-            "flex-1 resize-none rounded-xl border border-input bg-background px-4 py-2.5 text-sm text-foreground caret-foreground leading-5",
+            "flex-1 min-w-0 resize-none rounded-xl border border-input bg-background px-4 py-2.5 text-sm text-foreground caret-foreground leading-5",
             "placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring",
             "min-h-[40px] max-h-[120px]"
           )}

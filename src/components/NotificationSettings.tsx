@@ -55,9 +55,6 @@ const NotificationSettings = () => {
                       className="cursor-pointer"
                     >
                       <p className="text-sm text-foreground">{opt.label}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {opt.description}
-                      </p>
                     </Label>
                   </div>
                   {opt.id !== "none" && (

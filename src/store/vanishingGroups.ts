@@ -17,7 +17,10 @@ export interface VanishingMember {
 export interface VanishingGroup {
   id: string;
   name: string;
+  /** The creator. */
   adminFingerprint: string;
+  /** Everyone who can manage the group (the creator plus anyone made an admin). */
+  admins: string[];
   /** Random 256-bit address on the server; knowing it is what lets you read and post. */
   queueId: string;
   chain: ChainState;
@@ -25,16 +28,19 @@ export interface VanishingGroup {
   version: number;
   members: VanishingMember[];
   mySign: { pub: JsonWebKey; priv: JsonWebKey };
-  /** Admin only: secret that authorises wiping the group on the server. */
+  /** Admins only: secret that authorises managing the group on the server. */
   adminToken?: string;
-  /** Admin only: fingerprints invited but not yet answered. */
+  /** Fingerprints invited but not yet answered. */
   invited?: string[];
+  /** Admins only: when this phone last told the server an admin is active. */
+  lastPingAt?: number;
   createdAt: number;
 }
 
 export interface VanishingInvite {
   groupId: string;
   name: string;
+  /** The admin who invited us (a contact). */
   adminFingerprint: string;
   adminName: string;
   receivedAt: number;
@@ -58,7 +64,12 @@ export const onVanishingChange = (l: () => void) => {
 export function loadVanishing(): Stored {
   try {
     const raw = localStorage.getItem(KEY);
-    if (raw) return JSON.parse(raw) as Stored;
+    if (raw) {
+      const data = JSON.parse(raw) as Stored;
+      // Groups saved before several admins were possible had only the creator.
+      data.groups = data.groups.map((g) => ({ ...g, admins: g.admins?.length ? g.admins : [g.adminFingerprint] }));
+      return data;
+    }
   } catch {
     // Corrupt: start empty rather than crash.
   }

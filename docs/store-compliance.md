@@ -107,33 +107,39 @@ safety form.
 ## Vanishing groups
 
 Group chats whose messages, photos and videos are wiped from the server 48 hours after posting.
-The creator is the admin: they invite contacts, remove members and can delete the group.
+The creator is the first admin and can make others admins. Any admin can rename the group,
+invite, remove members, make or remove admins, and delete the group. Anyone can leave (the
+last admin must hand over first, or delete the group).
+
+Lifetime:
+- **Content** expires 48 hours after posting (server-set; purge every 5 minutes).
+- **The group** stays while at least one admin uses the app: admin phones check in with the
+  server at most hourly while the app is open (`vg_admin_ping`, and every state change). With no
+  admin activity for 48 hours, the purge removes the group and everything in it. An admin's
+  "Delete group for everyone" removes it at once.
+- **Wiping an admin's phone** (panic PIN, reset, burn, account deletion) clears the history of
+  their groups but leaves the groups for other members (`vg_clear_queue`).
 
 How it's secured:
-- **Server sees only ciphertext under a random 256-bit address.** No group name, member list or
-  sender is stored server-side. The tables have RLS on with no policies; the app can only call
-  the `vg_*` functions, which act on the one address supplied (no listing or scanning).
-- **Expiry is set by the server** (`now() + 48 hours`), not the client. Expired rows are never
-  returned, and `purge_expired_vanishing_groups` deletes them every 5 minutes.
-- **Membership never touches the server.** Invites, joins and the admin's group state (address,
-  keys, member list) go as hidden control messages over the existing pairwise Double Ratchet
-  channels. Members only accept state from the admin, only if it's newer and still lists them.
-- **Daily key ratchet.** Each day's key is a one-way hash of the previous day's; devices drop
-  keys older than 2 days, so a seized phone can't decrypt older traffic.
-- **Every message is signed** with the sender's per-group ECDSA key, distributed by the admin.
-  Forged, tampered or ex-member messages are dropped. Payloads are padded to 512-byte blocks.
-- **Photos and videos** (up to 20 MB) get their own random key, are uploaded as encrypted
-  512 KiB chunks bound to their position, expire with the messages, and are only ever decrypted
-  into memory on tap. Nothing is saved to the device. Android blocks screenshots (FLAG_SECURE).
-- **Removing a member** gives the group a new address and new keys and wipes the old address
-  (and its history) from the server. **Deleting the group** wipes everything at once. Both need
-  the admin's secret token, which only the admin's device holds (the server keeps its hash).
-- **Panic wipe** also wipes every group the device administers.
+- **Server sees only ciphertext.** Messages, media and the group state are encrypted. The group
+  state (name, members, admins, invites) is encrypted with a state key, signed by the admin who
+  changed it, and the keys are sealed to each member's identity key in **unlabelled** boxes, so
+  the server can't read the name, count fingerprints or tell who is in a group
+  (`src/lib/vanishing/state.ts`). Tables have RLS on and no policies; only the `vg_*`
+  functions are callable, and they act on the one address supplied.
+- **Only admins can change the group.** Writing state needs the admin token (sealed only to
+  admins). Members accept a new state only if it's newer, signed by someone they already trust
+  as an admin, and commits to the address and keys in their box. Demoting an admin replaces the
+  token. Tests cover self-promotion, forged signatures and removed members.
+- **Removing a member** moves the group to a new address and keys; the old address keeps a
+  forwarding note sealed only to the people who remain, and its history is wiped.
+- **Daily key ratchet**, per-sender message signatures, 512-byte padding, per-file media keys
+  and memory-only display, as before.
+- **Invites** go over the pairwise end-to-end channels from the inviting admin, who must have
+  the invitee as a contact.
 
-Limits: messages arrive by polling every 3 seconds while a group is open (no push). A new
-member can read the current day's messages from before they joined. If the admin's phone is
-lost, the group can't be deleted early or managed, but its content still expires after 48
-hours. **Deploy:** `supabase db push` applies the migration and schedules the purge job.
+**Deploy:** `supabase db push` applies `20261123000000_vanishing_groups.sql`,
+`20261126010000_vanishing_groups_stay_active.sql` and `20261126020000_vanishing_groups_admins.sql`.
 
 **Call servers:** set `VITE_TURN_URLS`, `VITE_TURN_USERNAME` and `VITE_TURN_CREDENTIAL` in the
 build environment to route every call through a TURN relay, so neither person sees the other's
@@ -188,8 +194,9 @@ notes never leave the device.
 Hardening in the native projects:
 - Android: `allowBackup=false`, plus `data_extraction_rules.xml`, which keeps keys out of
   Google backup and device transfer. `FLAG_SECURE` in `MainActivity` blocks screenshots,
-  screen recording and the recents thumbnail. Remove that flag temporarily to take store
-  screenshots.
+  screen recording and the recents thumbnail. To record or screenshot, add
+  `phantomAllowScreenCapture=true` to `android/gradle.properties` for that build only, and remove it
+  before a Play release.
 - iOS: `AppDelegate` excludes `Library/WebKit` (where WKWebView keeps local storage) from
   iCloud/iTunes backups.
 
@@ -204,9 +211,13 @@ Hardening in the native projects:
 | Messages, photos | Not collected: end-to-end encrypted, unreadable by the developer | | | |
 
 - **Account deletion (Guideline 5.1.1(v)):** in-app, at Settings → Data → Delete Account.
-- **User-generated content (1.2):** blocking means removing the contact. Reports go to the
-  contact email in the terms. App Review may ask for an in-app "Report" action; consider
-  adding one to the chat menu.
+- **User-generated content (1.2):** in a chat, ⋮ → **Report** (reason, details, optionally the
+  person's last 10 messages, optional reply email, "Also block") and ⋮ → **Block** (removes the
+  contact, stops their messages, prevents re-adding, hides their vanishing-group posts). In a
+  vanishing group, the flag next to each member reports them. Settings → Security → **Blocked
+  people** lists and unblocks. Reports land in the `abuse_reports` table (migration
+  `20261126000000_abuse_reports.sql`, insert-only from the app); review them in the Supabase
+  dashboard at least daily and fill in `handled_at`. Contact email: hello@greymeta.com.au.
 - **Export compliance:** Phantom implements its own end-to-end encryption (AES-GCM / ECDH /
   ratchet). Answer **Yes** to "uses encryption". It most likely qualifies for the
   mass-market exemption (EAR Category 5 Part 2), but confirm that with your adviser. US rules

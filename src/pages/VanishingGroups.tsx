@@ -16,7 +16,7 @@ const VanishingGroups = () => {
   const { toast } = useToast();
   const { state } = useCrypto();
   const { has } = useTier();
-  const { groups, invites, myFingerprint, createGroup, acceptInvite, declineInvite } = useVanishingGroups();
+  const { groups, invites, ended, dismissEnded, isAdmin, createGroup, acceptInvite, declineInvite } = useVanishingGroups();
   const [creating, setCreating] = useState(false);
   const [name, setName] = useState("");
   const [selected, setSelected] = useState<string[]>([]);
@@ -40,8 +40,8 @@ const VanishingGroups = () => {
 
   return (
     <div className="dark flex flex-col min-h-screen bg-background">
-      <div className="flex items-center gap-3 p-4 border-b bg-card/50 pt-[max(1rem,env(safe-area-inset-top))]">
-        <Button variant="ghost" size="icon" onClick={() => navigate("/")} aria-label="Back">
+      <div className="flex items-center gap-3 p-4 border-b bg-card/50">
+        <Button variant="ghost" size="icon" onClick={() => navigate("/chats?tab=groups")} aria-label="Back">
           <ArrowLeft className="h-5 w-5 text-primary" />
         </Button>
         <div className="flex-1">
@@ -54,6 +54,21 @@ const VanishingGroups = () => {
       </div>
 
       <div className="flex-1 overflow-y-auto p-3 space-y-4">
+        {ended.length > 0 && (
+          <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-xs text-amber-200 flex gap-2">
+            <div className="flex-1 space-y-1">
+              {ended.map((e, i) => (
+                <p key={i}>
+                  <span className="font-medium">{e.name}</span>{" "}
+                  {e.reason === "removed" ? "— you were removed from this group." : "has ended: an admin deleted it, or no admin was active for 48 hours."}
+                </p>
+              ))}
+            </div>
+            <button type="button" aria-label="Dismiss" onClick={dismissEnded}>
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        )}
         {invites.length > 0 && (
           <section>
             <p className="text-[10px] uppercase tracking-wider text-muted-foreground px-1 mb-1">Invites</p>
@@ -105,9 +120,9 @@ const VanishingGroups = () => {
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-foreground truncate flex items-center gap-1.5">
                       {g.name}
-                      {g.adminFingerprint === myFingerprint && <Crown className="h-3 w-3 text-amber-400" aria-label="You're the admin" />}
+                      {isAdmin(g) && <Crown className="h-3 w-3 text-amber-400" aria-label="You're an admin" />}
                     </p>
-                    <p className="text-xs text-muted-foreground">{g.members.length} members · 48h</p>
+                    <p className="text-xs text-muted-foreground">{g.members.length} members · messages vanish after 48h</p>
                   </div>
                 </button>
               ))

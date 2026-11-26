@@ -50,6 +50,22 @@ export async function lookupPublicKey(fingerprint: string) {
   return data;
 }
 
+/**
+ * Which of these fingerprints still have a directory entry. An entry is removed only when its
+ * owner deletes their account (delete-identity), so a contact missing from the result has gone.
+ * Throws when the directory can't be reached, so an outage is never mistaken for a deletion.
+ */
+export async function registeredFingerprints(fingerprints: string[]): Promise<Set<string>> {
+  const found = new Set<string>();
+  for (let i = 0; i < fingerprints.length; i += 100) {
+    const batch = fingerprints.slice(i, i + 100);
+    const { data, error } = await supabase.from("public_key_registry").select("fingerprint").in("fingerprint", batch);
+    if (error) throw new Error(`Lookup failed: ${error.message}`);
+    for (const row of data ?? []) found.add((row as { fingerprint: string }).fingerprint);
+  }
+  return found;
+}
+
 export async function searchUsers(query: string) {
   const { data, error } = await supabase
     .from("public_key_registry")

@@ -1,3 +1,4 @@
+import { isWiping } from "@/store/wipeGuard";
 // Encrypted localStorage vault
 // Sensitive keys (identity, contacts, messages, ratchet states) are encrypted at rest
 // using an AES-256-GCM key derived from the user's PIN via PBKDF2.
@@ -23,6 +24,7 @@ const SENSITIVE_KEYS = [
   "phantom_ratchet_stats",
   "phantom_secure_notes",
   "phantom_vanishing_groups",
+  "phantom_blocked",
 ];
 
 let vaultKey: CryptoKey | null = null;
@@ -313,7 +315,7 @@ function getSyncCandidateKeys(): string[] {
 }
 
 export async function syncVaultFromLocalStorage(keys?: string[], removePlaintext = false): Promise<void> {
-  if (!vaultKey) return;
+  if (!vaultKey || isWiping()) return;
 
   for (const key of keys ?? getSyncCandidateKeys()) {
     const value = localStorage.getItem(key);
@@ -325,6 +327,7 @@ export async function syncVaultFromLocalStorage(keys?: string[], removePlaintext
     }
 
     const encrypted = await encryptVaultData(vaultKey, value);
+    if (isWiping()) return; // a wipe started while encrypting: don't write anything back
     localStorage.setItem(VAULT_PREFIX + key, encrypted);
     if (removePlaintext) localStorage.removeItem(key);
   }

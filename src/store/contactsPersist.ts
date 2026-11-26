@@ -1,3 +1,4 @@
+import { isWiping } from "@/store/wipeGuard";
 import type { Contact } from "@/store/contacts";
 
 const DB_NAME = "phantom_contacts_db";
@@ -19,6 +20,10 @@ function openDb(): Promise<IDBDatabase> {
 export async function mirrorContactsToIDB(contacts: Contact[]): Promise<void> {
   try {
     const db = await openDb();
+    if (isWiping()) {
+      db.close();
+      return;
+    }
     await new Promise<void>((resolve, reject) => {
       const tx = db.transaction(STORE, "readwrite");
       tx.objectStore(STORE).put(contacts, KEY);

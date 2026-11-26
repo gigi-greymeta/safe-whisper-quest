@@ -150,8 +150,8 @@ const AdminConfigExport = () => {
   return (
     <div className="space-y-3">
       <p className="text-[11px] text-muted-foreground">
-        Export your account — identity keys, PIN, and pinned contacts — as an AES-256-GCM encrypted file.
-        Safe to store on an external drive so you can restore on a new device.
+        Export your account as an AES-256-GCM encrypted file.
+        Store on an external drive.
       </p>
       <div className="relative">
         <Input
@@ -159,12 +159,12 @@ const AdminConfigExport = () => {
           placeholder="Encryption passphrase (min 8 chars)"
           value={passphrase}
           onChange={(e) => setPassphrase(e.target.value)}
-          className="pr-10 text-sm"
+          className="pr-10 text-xs"
         />
         <button
           type="button"
           onClick={() => setShowPass(!showPass)}
-          className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+          className="text-xs absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
         >
           {showPass ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
         </button>

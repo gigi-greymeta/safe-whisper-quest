@@ -3,11 +3,12 @@ import type { Identity } from "@/store/identity";
 import { getIdentity, createIdentity, clearIdentity, restoreIdentityIfMissing } from "@/store/identity";
 import { hasSeen, markSeen, clearSeen } from "@/store/seenMessages";
 import type { Contact } from "@/store/contacts";
+import { block, isBlocked } from "@/store/blocked";
 import { getContacts, addContactDurable, removeContact as storeRemoveContact, clearContacts, updateContactDurable, restoreContactsIfMissing } from "@/store/contacts";
 import type { StoredMessage, DisappearTimer } from "@/store/messages";
 import { getMessagesForContact, saveMessage, clearAllMessages, deleteMessagesForContact, purgeExpiredMessages, markMessagesAsRead, markOutgoingAsRead, unwrapStoredMessage } from "@/store/messages";
 import type { Group } from "@/store/groups";
-import { getGroups, getGroup, createGroup as storeCreateGroup, deleteGroup as storeDeleteGroup, clearGroups } from "@/store/groups";
+import { getGroups, getGroup, createGroup as storeCreateGroup, deleteGroup as storeDeleteGroup, clearGroups, updateGroup as storeUpdateGroup } from "@/store/groups";
 import { getGroupMessages, saveGroupMessage, deleteGroupMessages, clearAllGroupMessages } from "@/store/groupMessages";
 import { importPrivateKey, importPublicKey, deriveSharedKey, base64ToPublicKey, publicKeyToBase64, registryKeyMatchesFingerprint } from "@/crypto/keys";
 import { encryptMessage, decryptMessage } from "@/crypto/encrypt";
@@ -41,6 +42,7 @@ import {
   createQueue,
   deleteQueue,
   extractHmacEnvelope,
+  registeredFingerprints,
 } from "@/services/relay";
 import { deriveHmacKeyFromShared, signPayload, verifyPayload } from "@/crypto/hmac";
 import type { RealtimeChannel } from "@supabase/supabase-js";
@@ -648,6 +650,7 @@ export function CryptoProvider({ children }: { children: React.ReactNode }) {
   const addContactHandler = useCallback(async (name: string, publicKeyB64: string): Promise<Contact> => {
     const publicKey = base64ToPublicKey(publicKeyB64);
     const fingerprint = publicKeyToBase64(publicKey);
+    if (isBlocked(fingerprint)) throw new Error("You blocked this person. Unblock them in Settings → Blocked people first.");
     // TOFU: pin the key on first contact
     pinKey(fingerprint, name, publicKey);
     const contact = await addContactDurable({
@@ -671,6 +674,7 @@ export function CryptoProvider({ children }: { children: React.ReactNode }) {
     // restored from the IndexedDB mirror into React state.
     const identity = state.identity ?? getIdentity() ?? await restoreIdentityIfMissing();
     if (!identity) throw new Error("No identity");
+    if (isBlocked(fingerprint)) throw new Error("You blocked this person. Unblock them in Settings → Blocked people first.");
 
     // The fingerprint IS the encoded public key, so a directory entry whose key
     // doesn't encode to its fingerprint has been tampered with. Refuse it rather
@@ -745,6 +749,14 @@ export function CryptoProvider({ children }: { children: React.ReactNode }) {
     syncVault();
   }, [resolveIdentity, syncVault]);
 
+  /** Block: remember them, then remove the contact so nothing more arrives from them. */
+  const blockContactHandler = useCallback((id: string) => {
+    const contact = getContacts().find((c) => c.id === id);
+    if (!contact) return;
+    block(contact.publicKeyFingerprint, contact.displayName);
+    removeContactHandlerRef.current(id);
+  }, []);
+
   const removeContactHandler = useCallback((id: string) => {
     const contact = getContacts().find((c) => c.id === id);
     if (contact?.inboxQueueId) {
@@ -758,6 +770,8 @@ export function CryptoProvider({ children }: { children: React.ReactNode }) {
     dispatch({ type: "REMOVE_CONTACT", id });
     syncVault();
   }, [syncVault]);
+  const removeContactHandlerRef = useRef(removeContactHandler);
+  removeContactHandlerRef.current = removeContactHandler;
 
   // ─── Outbox drain ─────────────────────────────────────────────────
   // Refresh pending/failed counts from IDB.
@@ -1233,6 +1247,10 @@ export function CryptoProvider({ children }: { children: React.ReactNode }) {
               }
               dispatch({ type: "ADD_GROUP", group: { ...group, id: parsed.groupId } });
             }
+            // Every member's copy carries the full member list, so everyone can reply to everyone.
+            if (Array.isArray(parsed.members)) {
+              await applyGroupRosterRef.current(parsed.groupId, parsed.groupName || "Group", contact, parsed.members);
+            }
             syncVault();
             return;
           }
@@ -1584,6 +1602,46 @@ export function CryptoProvider({ children }: { children: React.ReactNode }) {
     return group;
   }, [syncVault]);
 
+  /**
+   * Members listed in a group message become this phone's members too. Someone not yet in the
+   * address book is added from the key in the list (checked against their fingerprint), the same
+   * way a directory search adds them, so a reply reaches every member and not only the sender.
+   */
+  const applyGroupRoster = useCallback(async (groupId: string, groupName: string, sender: Contact, members: unknown[]) => {
+    const identity = state.identity ?? getIdentity();
+    if (!identity) return;
+    const memberIds = new Set<string>([sender.id]);
+    for (const m of members.slice(0, 5000)) {
+      const member = m as { fp?: unknown; name?: unknown; key?: unknown };
+      if (typeof member.fp !== "string" || member.fp === identity.publicKeyFingerprint) continue;
+      const existing = getContacts().find((c) => c.publicKeyFingerprint === member.fp);
+      if (existing) { memberIds.add(existing.id); continue; }
+      const key = member.key as JsonWebKey;
+      if (!registryKeyMatchesFingerprint(member.fp, key)) continue;
+      const name = typeof member.name === "string" && member.name.trim() ? member.name.trim().slice(0, 64) : "Group member";
+      try {
+        const added = await addContactFromRegistry(member.fp, name, key);
+        await updateContactDurable(added.id, { addedFromGroup: groupName });
+        dispatch({ type: "UPDATE_CONTACT", id: added.id, updates: { addedFromGroup: groupName } });
+        memberIds.add(added.id);
+      } catch (error) {
+        console.warn("[group] couldn't add a member from the group list:", error);
+      }
+    }
+    storeUpdateGroup(groupId, { memberIds: [...memberIds], name: groupName });
+    dispatch({ type: "SET_GROUPS", groups: getGroups() });
+  }, [state.identity, addContactFromRegistry]);
+  const applyGroupRosterRef = useRef(applyGroupRoster);
+  applyGroupRosterRef.current = applyGroupRoster;
+
+  /** The member list sent with every group message: everyone, including this phone. */
+  const groupRoster = (group: Group, identity: Identity) => [
+    { fp: identity.publicKeyFingerprint, name: identity.displayName, key: identity.keyPair.publicKey },
+    ...getContacts()
+      .filter((c) => group.memberIds.includes(c.id) && !c.accountDeleted)
+      .map((c) => ({ fp: c.publicKeyFingerprint, name: c.displayName, key: c.publicKey })),
+  ];
+
   const sendGroupMessage = useCallback(async (groupId: string, plaintext: string) => {
     const identity = getIdentity();
     if (!identity) throw new Error("No identity");
@@ -1596,14 +1654,16 @@ export function CryptoProvider({ children }: { children: React.ReactNode }) {
       groupId: group.id,
       groupName: group.name,
       senderName: identity.displayName,
+      members: groupRoster(group, identity),
       text: plaintext,
     });
 
     // Fan out: encrypt and send to each member via their pairwise queue
     const contacts = getContacts();
+    let delivered = 0;
     for (const memberId of group.memberIds) {
       const contact = contacts.find((c) => c.id === memberId);
-      if (!contact) continue;
+      if (!contact || contact.accountDeleted) continue;
 
       let ratchetState = getRatchetState(memberId);
       if (!ratchetState) {
@@ -1632,9 +1692,16 @@ export function CryptoProvider({ children }: { children: React.ReactNode }) {
       if (contact.outboxQueueId) {
         const hmacKey = await getHmacKeyForContact(identity.keyPair.privateKey, contact.publicKey);
         const hmacSig = await signPayload(hmacKey, payload);
-        await sendRelayMessage(contact.outboxQueueId, payload, iv, hmacSig);
+        try {
+          await sendRelayMessage(contact.outboxQueueId, payload, iv, hmacSig);
+          delivered++;
+        } catch (error) {
+          // One unreachable member (e.g. not yet set up, or account deleted) mustn't stop the rest.
+          console.warn("[group] send to one member failed:", error);
+        }
       }
     }
+    if (delivered === 0 && group.memberIds.length > 0) throw new Error("Couldn't reach anyone in this group. Check your connection and try again.");
 
     // Store locally as our own message (encrypt with a stable key for storage)
     const firstMember = contacts.find((c) => group.memberIds.includes(c.id));
@@ -1706,6 +1773,46 @@ export function CryptoProvider({ children }: { children: React.ReactNode }) {
     dispatch({ type: "REMOVE_GROUP", id: groupId });
   }, []);
 
+  /** Add members to a group. They learn about it (and everyone in it) with the next message. */
+  const addGroupMembers = useCallback((groupId: string, memberIds: string[]) => {
+    const group = getGroup(groupId);
+    if (!group) return;
+    storeUpdateGroup(groupId, { memberIds: [...new Set([...group.memberIds, ...memberIds])] });
+    dispatch({ type: "SET_GROUPS", groups: getGroups() });
+    syncVault();
+  }, [syncVault]);
+
+  /** Delete a conversation's messages but keep the person in the address book. */
+  const clearConversation = useCallback((contactId: string) => {
+    deleteMessagesForContact(contactId);
+    syncVault();
+  }, [syncVault]);
+
+  /**
+   * Mark contacts whose account was deleted (their directory entry is gone), and unmark any that
+   * are back. Checks at most once a minute; does nothing when the directory can't be reached.
+   */
+  const lastAccountCheckRef = useRef(0);
+  const checkContactAccounts = useCallback(async (force = false) => {
+    if (!force && Date.now() - lastAccountCheckRef.current < 60_000) return;
+    lastAccountCheckRef.current = Date.now();
+    const contacts = getContacts();
+    if (contacts.length === 0) return;
+    let found: Set<string>;
+    try {
+      found = await registeredFingerprints(contacts.map((c) => c.publicKeyFingerprint));
+    } catch {
+      return;
+    }
+    for (const c of contacts) {
+      const deleted = !found.has(c.publicKeyFingerprint);
+      if (deleted === !!c.accountDeleted) continue;
+      await updateContactDurable(c.id, { accountDeleted: deleted });
+      dispatch({ type: "UPDATE_CONTACT", id: c.id, updates: { accountDeleted: deleted } });
+    }
+    syncVault();
+  }, [syncVault]);
+
   return (
     <CryptoContext.Provider
       value={{
@@ -1715,6 +1822,7 @@ export function CryptoProvider({ children }: { children: React.ReactNode }) {
         addContact: addContactHandler,
         addContactFromRegistry,
         removeContact: removeContactHandler,
+        blockContact: blockContactHandler,
         sendMessage: sendMessageHandler,
         getDecryptedMessages,
         setDisappearTimer: setDisappearTimerHandler,
@@ -1733,6 +1841,9 @@ export function CryptoProvider({ children }: { children: React.ReactNode }) {
         sendGroupMessage,
         getDecryptedGroupMessages,
         deleteGroupChat,
+        addGroupMembers,
+        clearConversation,
+        checkContactAccounts,
         drainOutbox,
         retryFailedOutbox,
       }}

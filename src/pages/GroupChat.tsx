@@ -1,11 +1,23 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useCrypto } from "@/hooks/useCrypto";
-import { ArrowLeft, Shield, Trash2, Users } from "lucide-react";
+import { ArrowLeft, Shield, Trash2, Users, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import MessageBubble from "@/components/MessageBubble";
 import ChatInput from "@/components/ChatInput";
 import { getGroup } from "@/store/groups";
+import GroupMembersDialog from "@/components/GroupMembersDialog";
+import { useToast } from "@/hooks/use-toast";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useTier } from "@/hooks/useTier";
 import PinDropDialog from "@/components/PinDropDialog";
 import { wrapPinDrop } from "@/lib/location";
@@ -22,7 +34,10 @@ interface GroupMsg {
 
 const GroupChat = () => {
   const { groupId } = useParams<{ groupId: string }>();
-  const { state, sendGroupMessage, getDecryptedGroupMessages, deleteGroupChat, onIncomingMessage } = useCrypto();
+  const { state, sendGroupMessage, getDecryptedGroupMessages, deleteGroupChat, onIncomingMessage, addGroupMembers } = useCrypto();
+  const { toast } = useToast();
+  const [adding, setAdding] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const { has } = useTier();
   const [pinDropOpen, setPinDropOpen] = useState(false);
   const [voiceOpen, setVoiceOpen] = useState(false);
@@ -38,7 +53,7 @@ const GroupChat = () => {
       if (state.initialized) navigate("/", { replace: true });
       return;
     }
-    if (!group) { navigate("/contacts"); return; }
+    if (!group) { navigate("/chats?tab=groups", { replace: true }); return; }
     loadMessages();
 
     const unsubscribe = onIncomingMessage(() => {
@@ -64,14 +79,18 @@ const GroupChat = () => {
 
   const handleSend = async (text: string) => {
     if (!groupId) return;
-    await sendGroupMessage(groupId, text);
-    await loadMessages();
+    try {
+      await sendGroupMessage(groupId, text);
+      await loadMessages();
+    } catch (err) {
+      toast({ title: "Message not sent", description: err instanceof Error ? err.message : undefined, variant: "destructive" });
+    }
   };
 
   const handleDelete = () => {
     if (!groupId) return;
     deleteGroupChat(groupId);
-    navigate("/contacts");
+    navigate("/chats?tab=groups", { replace: true });
   };
 
   if (!state.identity || !group) return null;
@@ -82,7 +101,7 @@ const GroupChat = () => {
     <div className="dark flex flex-col h-screen bg-background">
       {/* Header */}
       <div className="flex items-center gap-3 p-3 border-b bg-card/50 backdrop-blur-sm">
-        <Button variant="ghost" size="icon" onClick={() => navigate("/contacts")}>
+        <Button variant="ghost" size="icon" onClick={() => navigate("/chats?tab=groups")} aria-label="Back to groups">
           <ArrowLeft className="h-5 w-5 text-primary" />
         </Button>
         <div className="flex-1 min-w-0">
@@ -95,7 +114,12 @@ const GroupChat = () => {
             <span>E2E Pairwise</span>
           </div>
         </div>
-        <Button variant="ghost" size="icon" onClick={handleDelete} className="text-destructive hover:text-destructive">
+        {has("groupChats") && (
+          <Button variant="ghost" size="icon" onClick={() => setAdding(true)} aria-label="Add members" className="text-primary hover:text-primary">
+            <UserPlus className="h-4 w-4" />
+          </Button>
+        )}
+        <Button variant="ghost" size="icon" onClick={() => setConfirmDelete(true)} aria-label="Delete group" className="text-destructive hover:text-destructive">
           <Trash2 className="h-4 w-4" />
         </Button>
       </div>
@@ -136,7 +160,7 @@ const GroupChat = () => {
           onVoice={() => (has("voiceMessages") ? setVoiceOpen(true) : navigate("/upgrade"))}
         />
       ) : (
-        <div className="border-t bg-card/50 p-4 flex items-center justify-between gap-3 pb-[max(1rem,env(safe-area-inset-bottom))]">
+        <div className="border-t bg-card/50 p-4 flex items-center justify-between gap-3">
           <p className="text-xs text-muted-foreground">Group chats need the Standard or Premium plan.</p>
           <Button size="sm" onClick={() => navigate("/upgrade")}>See plans</Button>
         </div>
@@ -150,6 +174,31 @@ const GroupChat = () => {
           await handleSend(wrapVoiceMessage({ mime: blob.type, data: await blobToBase64(blob), durationMs }));
         }}
       />
+      <GroupMembersDialog
+        open={adding}
+        onOpenChange={setAdding}
+        contacts={state.contacts}
+        mode="add"
+        excludeIds={group.memberIds}
+        onConfirm={(ids) => {
+          addGroupMembers(group.id, ids);
+          toast({ title: `Added ${ids.length} ${ids.length === 1 ? "person" : "people"}`, description: "They'll see the group with your next message." });
+        }}
+      />
+      <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
+        <AlertDialogContent className="dark">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete {group.name}?</AlertDialogTitle>
+            <AlertDialogDescription>The group and its messages are deleted from this phone. Other members keep their copy.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={handleDelete}>
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       <PinDropDialog open={pinDropOpen} onClose={() => setPinDropOpen(false)} onSend={(pin) => void handleSend(wrapPinDrop(pin))} />
     </div>
   );

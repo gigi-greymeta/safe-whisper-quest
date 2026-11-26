@@ -19,6 +19,7 @@ async function makeGroup(): Promise<{ group: VanishingGroup; outsiderSign: Await
     id: "g1",
     name: "Test",
     adminFingerprint: "alice",
+    admins: ["alice"],
     queueId: "a".repeat(64),
     chain: newChain(currentDay() - 1),
     version: 2,

@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useCrypto } from "@/hooks/useCrypto";
-import { ArrowLeft, Shield, Flame, Key, Timer, Info, Lock, AlertTriangle, LogOut, Database, HardDrive, Sparkles, Activity, ListChecks, Bug, Trash2, FileText, CreditCard } from "lucide-react";
+import { Shield, Flame, Key, Timer, Info, Lock, AlertTriangle, LogOut, Database, HardDrive, Sparkles, Activity, ListChecks, Bug, Trash2, FileText, CreditCard } from "lucide-react";
+import AppTabBar from "@/components/AppTabBar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
@@ -14,11 +15,12 @@ import PanicWipeButton from "@/components/PanicWipeButton";
 import VaultExport from "@/components/VaultExport";
 import AdminConfigExport from "@/components/AdminConfigExport";
 import StorageHealth from "@/components/StorageHealth";
-import MessagingReadinessChecklist from "@/components/MessagingReadinessChecklist";
 import NotificationSettings from "@/components/NotificationSettings";
 import DisguiseSettings from "@/components/DisguiseSettings";
+import BlockedPeople from "@/components/BlockedPeople";
 import CollapsibleCard from "@/components/CollapsibleCard";
-import { wipeDeviceCaches } from "@/lib/deviceWipe";
+import { eraseAllLocalData, restartFresh } from "@/lib/eraseDevice";
+import { currentOwner, wipeServerData } from "@/lib/serverWipe";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Bell, User } from "lucide-react";
 import { isLockEnabled, disableLock, hasPanicPin, removePanicPin } from "@/store/lock";
@@ -68,21 +70,16 @@ const Settings = () => {
 
   if (!state.identity) return null;
 
-  const handleBurn = () => {
-    burnAllData();
-    disableLock();
-    navigate("/");
+  const handleBurn = async () => {
+    // "All data" includes the account on our server, so delete that first while the keys exist.
+    await wipeServerData(currentOwner());
+    await eraseAllLocalData(burnAllData);
+    restartFresh();
   };
 
-  const handlePanicWipe = async () => {
-    localStorage.clear();
-    disableLock();
-    try {
-      await wipeDeviceCaches();
-    } catch {
-      // Best effort: the reload still happens.
-    }
-    window.location.reload();
+  // Same wipe as entering the panic PIN: server account and vanishing groups, then the phone.
+  const handlePanicWipe = () => {
+    window.dispatchEvent(new CustomEvent("phantom:panic"));
   };
 
   const handleSignOut = async () => {
@@ -135,16 +132,13 @@ const Settings = () => {
   }
 
   return (
-    <div className="dark flex flex-col min-h-screen bg-background">
+    <div className="dark flex flex-col h-screen bg-background">
       {/* Header */}
-      <div className="flex items-center gap-3 p-4 border-b bg-card/50 backdrop-blur-sm">
-        <Button variant="ghost" size="icon" onClick={() => navigate("/")}>
-          <ArrowLeft className="h-5 w-5 text-primary" />
-        </Button>
+      <div className="flex items-center gap-3 px-4 py-3 border-b bg-card/50 backdrop-blur-sm">
         <h1 className="text-lg font-semibold text-foreground">Settings</h1>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-4">
         <Tabs defaultValue="identity" className="w-full">
           <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="identity" className="text-xs gap-1">
@@ -187,9 +181,6 @@ const Settings = () => {
           <StorageHealth />
         </CollapsibleCard>
 
-        <CollapsibleCard icon={<ListChecks className="h-4 w-4 text-primary" />} title="Messaging Readiness">
-          <MessagingReadinessChecklist />
-        </CollapsibleCard>
           </TabsContent>
 
           {/* ---------------- Security tab ---------------- */}
@@ -203,8 +194,7 @@ const Settings = () => {
           <CardContent className="space-y-3">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-foreground">Screen Lock</p>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-sm text-white/80">
                   Require a PIN to open
                 </p>
               </div>
@@ -258,6 +248,8 @@ const Settings = () => {
 
         <DisguiseSettings />
 
+        <BlockedPeople />
+
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-sm flex items-center gap-2">
@@ -281,9 +273,6 @@ const Settings = () => {
             "AES-256-GCM encrypted on-device vault",
             "Per-session ephemeral keys (forward secrecy)",
             "TOFU key pinning with MITM warnings; directory keys are checked against their fingerprint",
-            "Sentry Mode — a decoy PIN silently wipes all data",
-           "Vanishing group messages are kept encrypted on the relay for 48 hours so members can catch up",
-            "Zero analytics or tracking",
           ].map((item) => (
             <div key={item} className="flex items-start gap-2">
               <Shield className="h-3 w-3 mt-1 text-primary shrink-0" />
@@ -333,6 +322,7 @@ const Settings = () => {
 
         <Separator />
 
+{import.meta.env.DEV && (
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-sm flex items-center gap-2">
@@ -350,6 +340,7 @@ const Settings = () => {
             </div>
           </CardContent>
         </Card>
+        )}
 
         <AlertDialog>
           <AlertDialogTrigger asChild>
@@ -361,8 +352,8 @@ const Settings = () => {
             <AlertDialogHeader>
               <AlertDialogTitle>Burn All Data?</AlertDialogTitle>
               <AlertDialogDescription>
-                This will permanently delete all data.
-                This action cannot be undone.
+                This permanently deletes your account on our server (if you're online) and
+                everything on this phone, and clears the messages in vanishing groups you run (the groups stay open for their members). This cannot be undone.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
@@ -414,6 +405,7 @@ const Settings = () => {
           </TabsContent>
         </Tabs>
       </div>
+      <AppTabBar />
     </div>
   );
 };

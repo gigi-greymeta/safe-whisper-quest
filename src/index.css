@@ -61,7 +61,7 @@
     --secondary-foreground: 210 20% 92%;
 
     --muted: 224 20% 16%;
-    --muted-foreground: 215 15% 55%;
+    --muted-foreground: 215 15% 63%;
 
     --accent: 142 30% 15%;
     --accent-foreground: 142 60% 65%;
@@ -124,5 +124,52 @@
     box-shadow: 0 0 0 1000px hsl(var(--background)) inset !important;
     caret-color: hsl(var(--foreground)) !important;
     border-color: hsl(var(--input)) !important;
+  }
+}
+
+/*
+ * Phones. The app draws edge to edge (viewport-fit=cover), so the page keeps itself clear of the
+ * notch, status bar and home indicator. iOS reports these as env(safe-area-inset-*); Capacitor's
+ * Android shell sets --safe-area-inset-* instead, so take whichever is larger.
+ * Full-height screens use the visible height (dvh), which shrinks with the browser bars and the
+ * keyboard, instead of 100vh, which on phones is taller than the screen.
+ */
+:root {
+  --safe-top: max(env(safe-area-inset-top, 0px), var(--safe-area-inset-top, 0px));
+  --safe-bottom: max(env(safe-area-inset-bottom, 0px), var(--safe-area-inset-bottom, 0px));
+  --safe-left: max(env(safe-area-inset-left, 0px), var(--safe-area-inset-left, 0px));
+  --safe-right: max(env(safe-area-inset-right, 0px), var(--safe-area-inset-right, 0px));
+}
+
+html,
+body {
+  background-color: hsl(224 30% 7%);
+  overflow-x: hidden;
+  overscroll-behavior-y: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+#root {
+  padding: var(--safe-top) var(--safe-right) var(--safe-bottom) var(--safe-left);
+}
+
+@supports (height: 100dvh) {
+  :root {
+    --app-height: calc(100dvh - var(--safe-top) - var(--safe-bottom));
+  }
+  .h-screen {
+    height: var(--app-height);
+  }
+  .min-h-screen {
+    min-height: var(--app-height);
+  }
+}
+
+/* Text fields at 16px stop iOS zooming the page when one is tapped. */
+@media (max-width: 640px) {
+  input,
+  textarea,
+  select {
+    font-size: 16px !important;
   }
 }

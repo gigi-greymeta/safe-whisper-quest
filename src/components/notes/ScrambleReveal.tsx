@@ -53,7 +53,7 @@ const ScrambleReveal = ({ from, to, onDone }: ScrambleRevealProps) => {
 
   return (
     <div className="dark flex flex-col h-screen bg-background">
-      <div className="flex items-center gap-2 p-3 border-b pt-[max(0.75rem,env(safe-area-inset-top))]">
+      <div className="flex items-center gap-2 p-3 border-b">
         <h1 className="flex-1 text-xl font-semibold text-foreground px-1 font-mono">
           {scrambleFrame("Notes", "Private notes", progress, seeds.current)}
         </h1>

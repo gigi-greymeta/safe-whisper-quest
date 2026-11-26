@@ -43,6 +43,8 @@ export interface CryptoContextValue {
   addContact: (name: string, publicKeyB64: string) => Promise<Contact>;
   addContactFromRegistry: (fingerprint: string, displayName: string, publicKeyJwk: JsonWebKey) => Promise<Contact>;
   removeContact: (id: string) => void;
+  /** Block and remove a contact; they can't be added again until unblocked. */
+  blockContact: (id: string) => void;
   sendMessage: (contactId: string, plaintext: string) => Promise<StoredMessage>;
   getDecryptedMessages: (contactId: string) => Promise<Array<{ id: string; text: string; fromMe: boolean; timestamp: number; status: string; hmacVerified?: boolean | null }>>;
   setDisappearTimer: (timer: DisappearTimer) => void;
@@ -62,6 +64,12 @@ export interface CryptoContextValue {
   sendGroupMessage: (groupId: string, plaintext: string) => Promise<void>;
   getDecryptedGroupMessages: (groupId: string) => Promise<Array<{ id: string; text: string; fromMe: boolean; senderName: string; timestamp: number }>>;
   deleteGroupChat: (groupId: string) => void;
+  /** Add members to an existing group. */
+  addGroupMembers: (groupId: string, memberIds: string[]) => void;
+  /** Delete a conversation's messages, keeping the contact in the address book. */
+  clearConversation: (contactId: string) => void;
+  /** Mark contacts who deleted their account. Throttled to once a minute unless forced. */
+  checkContactAccounts: (force?: boolean) => Promise<void>;
   drainOutbox: () => Promise<void>;
   retryFailedOutbox: () => Promise<void>;
 }

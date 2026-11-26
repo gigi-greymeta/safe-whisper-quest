@@ -80,7 +80,7 @@ const LockScreen = ({ onUnlock, onPanicWipe, plain, onCancel }: LockScreenProps)
 
   if (authMode === "passphrase") {
     return (
-      <div className="dark fixed inset-0 z-[100] flex flex-col items-center justify-center bg-background">
+      <div className="dark fixed inset-0 z-[100] flex flex-col pt-[var(--safe-top)] pb-[var(--safe-bottom)] items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-3 mb-8">
           {plain ? <Lock className="h-12 w-12 text-muted-foreground" /> : <LogoMark size={72} />}
           <h1 className="text-xl font-semibold text-foreground">{plain ? "Locked" : "Phantom Locked"}</h1>
@@ -159,7 +159,7 @@ const LockScreen = ({ onUnlock, onPanicWipe, plain, onCancel }: LockScreenProps)
   const digits = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "", "0", "del"];
 
   return (
-    <div className="dark fixed inset-0 z-[100] flex flex-col items-center justify-center bg-background">
+    <div className="dark fixed inset-0 z-[100] flex flex-col pt-[var(--safe-top)] pb-[var(--safe-bottom)] items-center justify-center bg-background">
       <div className="flex flex-col items-center gap-3 mb-6">
         {plain ? <Lock className="h-12 w-12 text-muted-foreground" /> : <LogoMark size={72} />}
         <h1 className="text-xl font-semibold text-foreground">{plain ? "Locked" : "Phantom Locked"}</h1>

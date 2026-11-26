@@ -6,11 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useCrypto } from "@/hooks/useCrypto";
 import { deleteIdentityFromServer } from "@/services/relay";
-import { clearVault } from "@/store/vault";
-import { secureEraseAll, disableLock } from "@/store/lock";
-import { clearPinnedKeys } from "@/store/keyPinning";
-import { clearPhantomStorageFromIDB } from "@/store/appPersist";
-import { clearSessionUnlock } from "@/store/sessionLock";
+import { eraseAllLocalData } from "@/lib/eraseDevice";
+import { wipeServerData } from "@/lib/serverWipe";
 
 type Step = "confirm" | "deleting" | "done";
 
@@ -38,16 +35,11 @@ const DeleteAccount = () => {
       return;
     }
 
-    // Then destroy every local trace (same sequence as the Reset Wizard).
-    clearSessionUnlock();
-    try { burnAllData(); } catch { /* best effort */ }
-    try { secureEraseAll(); } catch { /* best effort */ }
-    try { clearVault(); } catch { /* best effort */ }
-    try { clearPinnedKeys(); } catch { /* best effort */ }
-    try { disableLock(); } catch { /* best effort */ }
-    try { await clearPhantomStorageFromIDB(); } catch { /* best effort */ }
-    try { localStorage.clear(); } catch { /* best effort */ }
-    try { sessionStorage.clear(); } catch { /* best effort */ }
+    // Clear the chat history of vanishing groups this phone runs; the groups stay active for members.
+    await wipeServerData(null);
+
+    // Then destroy every local trace (the same erase as the Reset Wizard and panic wipe).
+    await eraseAllLocalData(burnAllData);
     setStep("done");
   };
 
@@ -80,6 +72,7 @@ const DeleteAccount = () => {
                   <li>Your directory entry (display name, public key, fingerprint)</li>
                   <li>Your inbox queues</li>
                   <li>Encrypted messages waiting to be delivered to you</li>
+                  <li>Messages, photos and videos in vanishing groups you run (the groups stay open for their members)</li>
                 </ul>
                 <p className="flex items-center gap-2 text-destructive font-medium pt-1">
                   <AlertTriangle className="h-4 w-4" /> Erased from this device

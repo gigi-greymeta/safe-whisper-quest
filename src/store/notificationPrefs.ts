@@ -34,10 +34,10 @@ export function setNotificationPrefs(prefs: NotificationPrefs): void {
   }
 }
 
-export const SOUND_OPTIONS: { id: SoundId; label: string; description: string }[] = [
-  { id: "chime", label: "Chime", description: "Soft two-note bell" },
-  { id: "pulse", label: "Pulse", description: "Short low pulse" },
-  { id: "pop", label: "Pop", description: "Single quick pop" },
-  { id: "blip", label: "Blip", description: "High digital blip" },
-  { id: "none", label: "Silent", description: "No sound" },
+export const SOUND_OPTIONS: { id: SoundId; label: string }[] = [
+  { id: "chime", label: "Chime" },
+  { id: "pulse", label: "Pulse" },
+  { id: "pop", label: "Pop" },
+  { id: "blip", label: "Blip" },
+  { id: "none", label: "Silent" },
 ];

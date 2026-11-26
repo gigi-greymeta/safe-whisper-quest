@@ -119,7 +119,7 @@ const Paywall = () => {
 
   return (
     <div className="dark flex flex-col min-h-screen bg-background">
-      <div className="flex items-center gap-3 p-4 border-b bg-card/50 backdrop-blur-sm pt-[max(1rem,env(safe-area-inset-top))]">
+      <div className="flex items-center gap-3 p-4 border-b bg-card/50 backdrop-blur-sm">
         <Button variant="ghost" size="icon" onClick={() => navigate(-1)} aria-label="Back" className="text-foreground hover:text-foreground">
           <ArrowLeft className="h-5 w-5 text-primary" />
         </Button>
@@ -236,7 +236,7 @@ const Paywall = () => {
           Manage or cancel at any time in your {isIOS ? "App Store account settings" : "Google Play subscriptions"}.
         </p>
 
-        <p className="text-[11px] text-center space-x-3 pb-[max(1rem,env(safe-area-inset-bottom))]">
+        <p className="text-[11px] text-center space-x-3">
           <a href="/legal/terms.html" className="text-primary underline">Terms of Service</a>
           <a href="/legal/privacy.html" className="text-primary underline">Privacy Policy</a>
         </p>
