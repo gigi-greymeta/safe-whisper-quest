@@ -9,7 +9,15 @@
 -- Tables are RLS-on with no policies: only the Edge Functions (service role) touch them.
 -- Push tokens are stored encrypted with a key only the Edge Functions hold.
 
-create extension if not exists pg_net with schema extensions;
+-- pg_net wakes the send-push function. Supabase has it; local test databases may not, and
+-- pushes are simply not sent there (the trigger below tolerates its absence).
+do $$
+begin
+  create extension if not exists pg_net with schema extensions;
+exception when others then
+  raise notice 'pg_net unavailable; push notifications will not be sent from this database';
+end;
+$$;
 
 create table if not exists public.push_devices (
   -- SHA-256 of a random secret only the phone knows; the secret is what lets it unregister.

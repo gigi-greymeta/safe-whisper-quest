@@ -78,6 +78,14 @@
             </intent-filter>
         </activity-alias>
 
+        <!-- Push alerts (content-free): status-bar icon and channel when the server doesn't set them. -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_icon"
+            android:resource="@drawable/ic_stat_phantom" />
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_channel_id"
+            android:value="messages" />
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"
@@ -106,4 +114,6 @@
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <!-- Android 13+: asked only when the person turns on "Alerts when Phantom is closed". -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 </manifest>

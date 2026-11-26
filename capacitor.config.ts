@@ -3,7 +3,11 @@ import type { CapacitorConfig } from '@capacitor/cli';
 const config: CapacitorConfig = {
   appId: 'au.com.greymeta.phantom',
   appName: 'Phantom - Secure Chat',
-  webDir: 'dist'
+  webDir: 'dist',
+  plugins: {
+    // While Phantom is open, the in-app alerts handle new messages; no system banner.
+    PushNotifications: { presentationOptions: [] },
+  },
 };
 
 export default config;

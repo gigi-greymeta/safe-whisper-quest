@@ -12,6 +12,7 @@ import {
   type SoundId,
 } from "@/store/notificationPrefs";
 import { playSound } from "@/lib/notificationSound";
+import PushSettings from "@/components/PushSettings";
 
 const NotificationSettings = () => {
   const [prefs, setPrefs] = useState(getNotificationPrefs());
@@ -104,6 +105,8 @@ const NotificationSettings = () => {
           </div>
         </>
       )}
+
+      <PushSettings />
     </div>
   );
 };
