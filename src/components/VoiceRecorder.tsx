@@ -108,7 +108,7 @@ const VoiceRecorder = ({ open, maxBytes, allowFilter, onClose, onSend }: VoiceRe
           <DialogDescription>
             {allowFilter
               ? "Choose a voice filter. Only the filtered voice is recorded and sent."
-              : "Record a message. It's end-to-end encrypted like your texts."}
+              : "Record an end-to-end encrypted voice message."}
           </DialogDescription>
         </DialogHeader>
 

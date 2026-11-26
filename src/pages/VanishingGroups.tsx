@@ -29,7 +29,7 @@ const VanishingGroups = () => {
       setCreating(false);
       setName("");
       setSelected([]);
-      toast({ title: "Group created", description: "Invites sent. People appear in the group once they accept." });
+      toast({ title: "Group created", description: "Invites sent." });
       navigate(`/vanishing/${group.id}`);
     } catch (e) {
       toast({ title: "Couldn't create the group", description: e instanceof Error ? e.message : undefined, variant: "destructive" });
@@ -46,7 +46,7 @@ const VanishingGroups = () => {
         </Button>
         <div className="flex-1">
           <h1 className="text-lg font-semibold text-foreground">Groups</h1>
-          <p className="text-xs text-muted-foreground">Messages, photos and videos are wiped after 48 hours</p>
+          <p className="text-xs text-muted-foreground">Content is wiped after 48 hours</p>
         </div>
         <Button size="icon" variant="outline" aria-label="New group" onClick={() => (has("vanishingGroups") ? setCreating(true) : navigate("/upgrade"))}>
           <Plus className="h-4 w-4 text-primary" />
@@ -99,9 +99,9 @@ const VanishingGroups = () => {
           {groups.length === 0 ? (
             <div className="text-center text-muted-foreground mt-16 space-y-2 px-6">
               <Timer className="h-10 w-10 mx-auto text-primary/50" />
-              <p className="text-sm">No vanishing groups yet</p>
+              <p className="text-sm">No groups yet</p>
               <p className="text-xs">
-                Everything posted is end-to-end encrypted, signed by its sender and permanently wiped from the server after 48 hours.
+                Everything is end-to-end encrypted.
               </p>
             </div>
           ) : (
@@ -134,7 +134,7 @@ const VanishingGroups = () => {
         <DialogContent className="dark max-w-sm max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>New vanishing group</DialogTitle>
-            <DialogDescription>You'll be the admin: you can invite and remove people and delete the group.</DialogDescription>
+            <DialogDescription>Invite and remove members or delete the group.</DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
             <Input placeholder="Group name" maxLength={80} value={name} onChange={(e) => setName(e.target.value)} />

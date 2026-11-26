@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useCrypto } from "@/hooks/useCrypto";
-import { UserPlus, Shield, Search, ScanLine, QrCode, MessageSquare, ShieldCheck, Trash2, UserX, BadgeCheck } from "lucide-react";
+import { UserPlus, Shield, Search, ScanLine, QrCode, MessageSquare, ShieldCheck, Trash2, UserX, BadgeCheck, Flag, Ban } from "lucide-react";
+import ReportDialog from "@/components/ReportDialog";
+import { readableForReport } from "@/lib/reportText";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -28,10 +30,23 @@ import QRScanner from "@/components/QRScanner";
 import QRCodeDisplay from "@/components/QRCode";
 import { parseIdentityCode } from "@/lib/qrCodes";
 import { lookupPublicKey } from "@/services/relay";
-import { updateContact } from "@/store/contacts";
+import { updateContact, type Contact } from "@/store/contacts";
 
 const Contacts = () => {
-  const { state, addContact, addContactFromRegistry, removeContact, searchRegisteredUsers, checkContactAccounts } = useCrypto();
+  const { state, addContact, addContactFromRegistry, removeContact, blockContact, getDecryptedMessages, searchRegisteredUsers, checkContactAccounts } = useCrypto();
+  const [confirmBlock, setConfirmBlock] = useState(false);
+  const [reporting, setReporting] = useState<{ contact: Contact; messages: { from: string; text: string; at: number }[] } | null>(null);
+
+  /** Report from the contact's details: offer their recent messages from this phone. */
+  const openReport = async (contactId: string) => {
+    const contact = state.contacts.find((c) => c.id === contactId);
+    if (!contact) return;
+    const msgs = await getDecryptedMessages(contactId).catch(() => []);
+    setReporting({
+      contact,
+      messages: msgs.filter((m) => !m.fromMe).map((m) => ({ from: contact.displayName, text: readableForReport(m.text), at: m.timestamp })),
+    });
+  };
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -218,7 +233,7 @@ const Contacts = () => {
             <Shield className="h-12 w-12 text-muted-foreground/60" />
             <p className="text-muted-foreground text-sm">No contacts yet</p>
             <p className="text-muted-foreground text-xs max-w-[220px]">
-              Scan someone's QR code, search for their display name, or paste their public key.
+              Scan someone's QR code, search their display name, or paste their public key.
             </p>
             <Button variant="outline" size="sm" onClick={() => setShowAdd(true)}>
               <UserPlus className="h-4 w-4 mr-2" /> Add Contact
@@ -247,8 +262,7 @@ const Contacts = () => {
                 <div className="mt-3 flex gap-2 rounded-lg border border-muted p-3 text-xs text-muted-foreground">
                   <UserX className="h-4 w-4 shrink-0" />
                   <span>
-                    {opened.displayName} deleted their Phantom account, so messages can't reach them. Your past chat stays on this phone.
-                    If they made a new account, add them again from their new code.
+                    {opened.displayName} deleted their Phantom account.
                   </span>
                 </div>
               )}
@@ -264,6 +278,12 @@ const Contacts = () => {
                     <ShieldCheck className="h-4 w-4 mr-2 text-primary" /> Verify safety number
                   </Button>
                 )}
+                <Button variant="outline" onClick={() => void openReport(opened.id)}>
+                  <Flag className="h-4 w-4 mr-2 text-primary" /> Report
+                </Button>
+                <Button variant="outline" className="text-destructive hover:text-destructive" onClick={() => setConfirmBlock(true)}>
+                  <Ban className="h-4 w-4 mr-2" /> Block
+                </Button>
                 <Button variant="outline" className="text-destructive hover:text-destructive" onClick={() => setConfirmRemove(true)}>
                   <Trash2 className="h-4 w-4 mr-2" /> Remove contact
                 </Button>
@@ -273,12 +293,52 @@ const Contacts = () => {
         </SheetContent>
       </Sheet>
 
+      <AlertDialog open={confirmBlock} onOpenChange={setConfirmBlock}>
+        <AlertDialogContent className="dark">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Block {opened?.displayName}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Removed from your contacts and their posts are hidden in groups.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => {
+                if (opened) {
+                  blockContact(opened.id);
+                  toast({ title: `${opened.displayName} blocked` });
+                }
+                setOpenId(null);
+              }}
+            >
+              Block
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {reporting && (
+        <ReportDialog
+          open
+          onClose={() => setReporting(null)}
+          context="chat"
+          person={{ fingerprint: reporting.contact.publicKeyFingerprint, name: reporting.contact.displayName }}
+          recentMessages={reporting.messages}
+          onBlock={() => {
+            blockContact(reporting.contact.id);
+            setOpenId(null);
+          }}
+        />
+      )}
+
       <AlertDialog open={confirmRemove} onOpenChange={setConfirmRemove}>
         <AlertDialogContent className="dark">
           <AlertDialogHeader>
             <AlertDialogTitle>Remove {opened?.displayName}?</AlertDialogTitle>
             <AlertDialogDescription>
-              This deletes your chat with them from this phone and closes your encrypted channel. You can add them again later.
+              This deletes your chat and closes your encrypted channel. 
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

@@ -130,7 +130,6 @@ const Chats = () => {
             <div className="flex flex-col items-center text-center p-8 space-y-3">
               <MessageSquarePlus className="h-10 w-10 text-muted-foreground/60" />
               <p className="text-sm text-muted-foreground">No chats yet</p>
-              <p className="text-xs text-muted-foreground max-w-[220px]">Open Contacts and pick someone to start an encrypted chat.</p>
               <Button variant="outline" size="sm" onClick={() => navigate("/contacts")}>Open Contacts</Button>
             </div>
           ) : (

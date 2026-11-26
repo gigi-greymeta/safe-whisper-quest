@@ -17,8 +17,7 @@ export default function EphemeralSessionWarning() {
         </p>
         <p className="text-[11px] text-muted-foreground leading-snug mt-1">
           Your identity won't survive closing this tab, and installing as an
-          app is blocked here. Open Phantom in a normal browser window, then
-          install it — the standalone app is sandboxed and persistent.
+          app is blocked here.
         </p>
       </div>
     </div>

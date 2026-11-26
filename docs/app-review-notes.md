@@ -15,7 +15,7 @@ Phantom is a private messenger for adults who need to communicate without being 
 - Messaging needs a second identity. Install Phantom on a second device and create another identity, or add our review contact: Contacts > + > search "[DEMO NAME]". That identity is monitored during review and will reply.
 - Tabs: Chats, Contacts, Settings. In a chat: send text, photos, voice messages and pins (map pin icon); call with the phone icon.
 - Paid features use In-App Purchase (Settings > Data > Plan). Standard (phantom_standard_monthly): group chats, voice messages, locked notepad. Premium (phantom_premium_monthly): vanishing groups, voice calls, voice filter, pin drops, decoy notes, scrambled messages, app disguise and panic PIN. Use a Sandbox account to subscribe. Restore Purchases is on the same screen.
-- Report and block: in a chat, tap ⋮ > Report or ⋮ > Block. In a vanishing group, tap Members, then the flag next to a person. Blocked people are listed under Settings > Security > Blocked people.
+- Report and block: in a chat, tap ⋮ (top right) > Report or ⋮ > Block. Also in Contacts > tap a contact > Report / Block. In a vanishing group, tap Members, then the flag next to a person. Blocked people are listed under Settings > Security > Blocked people.
 - Delete account: Settings > Data > Delete Account. This deletes the identity on our server and erases the device.
 
 Safety features (disclosed here so nothing is hidden):

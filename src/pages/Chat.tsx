@@ -356,8 +356,8 @@ const Chat = () => {
         <div className="mx-3 mt-2 flex gap-2.5 rounded-lg border border-muted bg-muted/30 p-3">
           <UserX className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
           <p className="text-[11px] text-muted-foreground leading-snug">
-            {contact.displayName} deleted their Phantom account, so new messages can't reach them. This chat stays on your phone
-            until you clear it. If they made a new account, add them again from Contacts.
+            {contact.displayName} deleted their Phantom account. This chat stays on your phone
+            until you clear it. 
           </p>
         </div>
       )}
@@ -442,7 +442,7 @@ const Chat = () => {
           <AlertDialogHeader>
             <AlertDialogTitle>Block {contact.displayName}?</AlertDialogTitle>
             <AlertDialogDescription>
-              They're removed from your contacts and can't message you, and their posts are hidden in vanishing groups. You can unblock them in Settings.
+              They're removed from your contacts and posts are hidden in groups.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -478,7 +478,7 @@ const Chat = () => {
           <AlertDialogHeader>
             <AlertDialogTitle>Clear this chat?</AlertDialogTitle>
             <AlertDialogDescription>
-              Every message with {contact.displayName} is deleted from this phone. They stay in your contacts.
+              Every message with {contact.displayName} is deleted.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

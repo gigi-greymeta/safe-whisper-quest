@@ -49,8 +49,8 @@ const GroupMembersDialog = ({ open, onOpenChange, contacts, mode, excludeIds = [
           <DialogTitle>{mode === "create" ? "New group" : "Add members"}</DialogTitle>
           <DialogDescription>
             {mode === "create"
-              ? "Choose who's in the group. You can add more people at any time."
-              : "They'll see the group, and everyone in it, with the next message."}
+              ? "Choose who's in the group."
+              : "They'll see the group with the next messsage."}
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-3 flex-1 min-h-0 flex flex-col">

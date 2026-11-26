@@ -182,7 +182,7 @@ const GroupChat = () => {
         excludeIds={group.memberIds}
         onConfirm={(ids) => {
           addGroupMembers(group.id, ids);
-          toast({ title: `Added ${ids.length} ${ids.length === 1 ? "person" : "people"}`, description: "They'll see the group with your next message." });
+          toast({ title: `Added ${ids.length} ${ids.length === 1 ? "person" : "people"}`, description: "Invite to the group." });
         }}
       />
       <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>

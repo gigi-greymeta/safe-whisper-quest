@@ -143,7 +143,7 @@ const ChatInput = ({ onSend, onSendFile, onTyping, disabled, scramble, onToggleS
             disabled={disabled}
             aria-pressed={!!scramble}
             aria-label={scramble ? "Scrambling on" : "Scrambling off"}
-            title={scramble ? "Scrambling on: the recipient must unlock each message" : "Scramble messages"}
+            title={scramble ? "Scrambling text activated" : "Scramble messages"}
           >
             <EyeOff className="h-4 w-4" />
           </Button>

@@ -404,7 +404,7 @@ const VanishingGroupChat = () => {
           )}
 
           <p className="text-[11px] text-muted-foreground mt-4 leading-relaxed">
-            Messages, photos and videos vanish 48 hours after they're posted. The group stays while at least one admin uses the app; after 48 hours with no admin active, it's removed.
+            Messages, photos and videos vanish 48 hours after they're posted, group is deleted after 48 hours of admin inactivity.
           </p>
 
           <Button variant="outline" className="w-full mt-4" onClick={() => setConfirm("leave")}>
@@ -424,7 +424,7 @@ const VanishingGroupChat = () => {
             <AlertDialogTitle>{confirm === "delete" ? "Delete this group?" : "Leave this group?"}</AlertDialogTitle>
             <AlertDialogDescription>
               {confirm === "delete"
-                ? "Every message, photo and video is wiped from the server now, and the group disappears for all members."
+                ? "All content is wiped from the server, and the group disappears for all members."
                 : isAdmin
                   ? "You'll stop seeing messages and stop being an admin. The group carries on for everyone else."
                   : "You'll stop seeing messages, and the admins are told you've left."}

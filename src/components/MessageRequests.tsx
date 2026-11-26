@@ -27,7 +27,7 @@ const MessageRequests = () => {
                 <p className="mt-0.5 text-xs text-muted-foreground line-clamp-2">"{r.body.preview}"</p>
               )}
               <p className="mt-0.5 text-[10px] text-muted-foreground">
-                Not in your contacts. Accept only if you know them; you can verify their safety number after.
+               Accept only if you know them.
               </p>
               <div className="mt-2 flex gap-2">
                 <Button

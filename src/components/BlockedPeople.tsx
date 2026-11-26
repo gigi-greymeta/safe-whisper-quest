@@ -18,7 +18,7 @@ const BlockedPeople = () => {
       <CardContent className="space-y-2">
         {blocked.length === 0 ? (
           <p className="text-xs text-muted-foreground">
-            Nobody blocked. To block someone, open your chat with them and tap ⋮ → Block.
+       To block someone, open your chat with them and tap ⋮ → Block.
           </p>
         ) : (
           blocked.map((b) => (
@@ -38,7 +38,7 @@ const BlockedPeople = () => {
           ))
         )}
         {blocked.length > 0 && (
-          <p className="text-[11px] text-muted-foreground">Unblocking lets you add them as a contact again.</p>
+          <p className="text-[11px] text-muted-foreground">You can add as a contact after unblocking.</p>
         )}
       </CardContent>
     </Card>
