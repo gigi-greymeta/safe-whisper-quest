@@ -51,8 +51,8 @@ export async function lookupPublicKey(fingerprint: string) {
 }
 
 /**
- * Which of these fingerprints still have a directory entry. An entry is removed only when its
- * owner deletes their account (delete-identity), so a contact missing from the result has gone.
+ * Which of these fingerprints still have a live directory entry. Account deletion
+ * clears the fingerprint but preserves the row id and display name.
  * Throws when the directory can't be reached, so an outage is never mistaken for a deletion.
  */
 export async function registeredFingerprints(fingerprints: string[]): Promise<Set<string>> {
@@ -71,6 +71,7 @@ export async function searchUsers(query: string) {
     .from("public_key_registry")
     .select("*")
     .ilike("display_name", `%${query}%`)
+    .not("fingerprint", "is", null)
     .is("archived_at" as any, null)
     .order("last_seen_at", { ascending: false })
     .limit(20);
@@ -361,8 +362,8 @@ export function unsubscribeFromMessages(channel: RealtimeChannel) {
 // ─── Identity Deletion ─────────────────────────────────────────────
 
 /**
- * Permanently delete this identity's server-side data: its public key
- * directory entry, inbox queues, and any undelivered messages addressed to or
+ * Permanently scrub this identity's public key directory entry (except its id
+ * and display name), inbox queues, and any undelivered messages addressed to or
  * (legacy path) from it. Authorised by proving possession of the private key —
  * see supabase/functions/_shared/deletionProof.ts.
  *

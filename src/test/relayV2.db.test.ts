@@ -12,7 +12,7 @@ import { generateIdentityKeyPair, exportKeyPair, publicKeyToBase64 } from "@/cry
 
 const root = join(__dirname, "../../supabase");
 const SUPABASE_STANDINS = `
-  create role anon nologin; create role authenticated nologin;
+  create role anon nologin; create role authenticated nologin; create role service_role nologin;
   grant usage on schema public to anon, authenticated;
   alter default privileges in schema public grant all on tables to anon, authenticated;
   create schema extensions;
@@ -125,6 +125,37 @@ describe("relay v2 (owner-only inboxes)", () => {
   it("inbox rows can't be listed, and directory keys can't be rewritten", async () => {
     expect(await denied("select * from public.pairwise_queues")).toBe("denied");
     expect(await denied("update public.public_key_registry set public_key_jwk = '{}' returning id")).toBe("denied");
+  });
+
+  it("a verified deletion can scrub every registry field except id and display name", async () => {
+    const inserted = (await db.query<{ id: string }>(
+      "insert into public.public_key_registry (fingerprint, display_name, public_key_jwk, archived_at) values ($1, $2, $3::jsonb, now()) returning id",
+      [alice.fingerprint, "Alice", JSON.stringify(alice.publicKey)],
+    )).rows[0];
+    await db.exec("alter table public.public_key_registry add column future_metadata text");
+    await db.query("update public.public_key_registry set future_metadata = 'clear me' where id = $1", [inserted.id]);
+
+    // Anonymous callers cannot invoke the privileged scrub function.
+    expect(await denied("select public.scrub_public_key_registry_entry($1)", [alice.fingerprint])).toBe("denied");
+    const result = (await db.query<{ count: number }>(
+      "select public.scrub_public_key_registry_entry($1) as count",
+      [alice.fingerprint],
+    )).rows[0];
+    expect(result.count).toBe(1);
+
+    const row = (await db.query<Record<string, unknown>>(
+      "select * from public.public_key_registry where id = $1",
+      [inserted.id],
+    )).rows[0];
+    expect(row.id).toBe(inserted.id);
+    expect(row.display_name).toBe("Alice");
+    for (const [column, value] of Object.entries(row)) {
+      if (column !== "id" && column !== "display_name") expect(value).toBeNull();
+    }
+    expect((await db.query<{ count: number }>(
+      "select public.scrub_public_key_registry_entry($1) as count",
+      [alice.fingerprint],
+    )).rows[0].count).toBe(0);
   });
 
   it("v1 inboxes keep working for older app versions until the lock-down", async () => {

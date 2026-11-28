@@ -32,7 +32,7 @@
 <table>
 <thead><tr><th>Data</th><th>Why</th><th>Who can see it</th><th>How long</th></tr></thead>
 <tbody>
-<tr><td>Display name, public key and key fingerprint (directory entry)</td><td>So contacts can find you and encrypt messages to you</td><td>Public: any Phantom user can look up or search for it</td><td>Until you delete your account</td></tr>
+<tr><td>Display name, public key and key fingerprint (directory entry)</td><td>So contacts can find you and encrypt messages to you</td><td>Public: any Phantom user can look up or search for active entries</td><td>On account deletion, the public key, fingerprint and timestamps are cleared; the row ID and display name remain, hidden from app search</td></tr>
 <tr><td>Inbox queue identifiers (random-looking IDs derived from your key and a contact's key)</td><td>To route encrypted messages to you</td><td>Not shown to other users</td><td>Until you remove the contact or delete your account; automatically deleted after 30 days without activity</td></tr>
 <tr><td>Encrypted messages and attachments in transit (padded to fixed sizes)</td><td>Store-and-forward delivery while a recipient is offline</td><td>Nobody can read the content; it is end-to-end encrypted</td><td>Automatically deleted after 7 days, or earlier if you delete your account</td></tr>
 <tr><td>Timestamps of when the above records were created</td><td>Expiry and clean-up</td><td>Not shown to other users</td><td>Deleted with the record</td></tr>

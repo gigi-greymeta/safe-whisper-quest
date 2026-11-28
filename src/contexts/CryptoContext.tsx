@@ -1818,7 +1818,7 @@ export function CryptoProvider({ children }: { children: React.ReactNode }) {
   }, [syncVault]);
 
   /**
-   * Mark contacts whose account was deleted (their directory entry is gone), and unmark any that
+   * Mark contacts whose account was deleted (their directory fingerprint is cleared), and unmark any that
    * are back. Checks at most once a minute; does nothing when the directory can't be reached.
    */
   const lastAccountCheckRef = useRef(0);

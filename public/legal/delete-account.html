@@ -33,7 +33,7 @@
 
 <h2>What is deleted</h2>
 <ul>
-<li>Your directory entry: display name, public key and fingerprint</li>
+<li>Your public key, fingerprint and directory timestamps are cleared. The directory row keeps its ID and display name but is hidden from search.</li>
 <li>Your inbox queues</li>
 <li>Encrypted messages waiting to be delivered to you</li>
 <li>On your device (in-app deletion): your keys, contacts, messages, groups, safety numbers, screen lock and encrypted vault</li>
@@ -41,12 +41,13 @@
 
 <h2>What is kept, and for how long</h2>
 <ul>
+<li>The public directory row ID and chosen display name remain after account deletion. The entry cannot be found through app search because its public key and fingerprint are cleared.</li>
 <li>Encrypted messages <em>you</em> sent that are still waiting in a contact's inbox are not linked to your identity, so we cannot find them to delete them. They are deleted automatically within <strong>7 days</strong>.</li>
 <li>Messages already delivered to your contacts stay on <em>their</em> devices. We have no access to them.</li>
 <li>Vault backup files you exported are under your control. Delete them yourself.</li>
 <li>Short-lived infrastructure logs held by our hosting provider (for example IP addresses) expire on that provider's normal log retention schedule.</li>
 </ul>
-<p>We keep no other copies or backups of deleted data.</p>
+<p>We keep no other copies or backups of the data cleared by account deletion.</p>
 <p>Want to delete only some data? See <a href="/legal/delete-data.html">Data Deletion</a>.</p>
 <footer>
 <a href="/legal/privacy.html">Privacy Policy</a><a href="/legal/terms.html">Terms of Service</a><a href="/legal/delete-account.html">Account Deletion</a><a href="/legal/delete-data.html">Data Deletion</a>

@@ -47,10 +47,10 @@ const ResetWizard = () => {
     setStep("wiping");
     setProgress([]);
     addProgress("Deleting your account on the server…");
-    // Frees your display name for the new identity and removes your directory entry,
-    // inbox and waiting messages. Best effort: offline, the local reset still goes ahead.
+    // Clears the directory key and fingerprint, inbox and waiting messages.
+    // The directory ID and display name remain. Offline, the local reset still goes ahead.
     const deleted = await wipeServerData(currentOwner());
-    if (!deleted) addProgress("Couldn't reach the server; your old directory entry may remain.");
+    if (!deleted) addProgress("Couldn't reach the server; your old public key may remain listed.");
     addProgress("Stopping the connection and clearing your identity, contacts and messages…");
     // The full erase: realtime and in-memory copies first, then every storage area,
     // including the separate identity and contact mirrors that used to survive a reset.
@@ -96,7 +96,7 @@ const ResetWizard = () => {
                   <li>All chat history and group messages</li>
                   <li>Screen lock PIN and sentry credential</li>
                   <li>Encrypted vault, cached snapshots and app caches</li>
-                  <li>Your account on our server (directory entry, inbox and waiting messages) and the messages in vanishing groups you run, if you're online. The groups stay open for their members.</li>
+                  <li>Your public key, fingerprint, inbox and waiting messages on our server, if you're online. The directory ID and display name remain. Messages in vanishing groups you run are removed; the groups stay open for their members.</li>
                 </ul>
               </div>
               <Button className="w-full" onClick={() => setStep("backup")}>

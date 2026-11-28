@@ -70,7 +70,7 @@ const DeleteAccount = () => {
                   <AlertTriangle className="h-4 w-4" /> Deleted
                 </p>
                 <ul className="list-disc pl-5 text-xs text-muted-foreground space-y-1">
-                  <li>Your directory entry (display name, public key, fingerprint)</li>
+                  <li>Your public key and fingerprint; the directory row keeps its ID and display name but is hidden from search</li>
                   <li>Your inbox queues</li>
                   <li>Encrypted messages waiting to be delivered to you</li>
                   <li>Messages, photos and videos in vanishing groups you run (the groups stay open for their members)</li>

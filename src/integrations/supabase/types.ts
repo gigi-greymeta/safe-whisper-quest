@@ -38,12 +38,12 @@ export type Database = {
       public_key_registry: {
         Row: {
           archived_at: string | null
-          created_at: string
+          created_at: string | null
           display_name: string
-          fingerprint: string
+          fingerprint: string | null
           id: string
-          last_seen_at: string
-          public_key_jwk: Json
+          last_seen_at: string | null
+          public_key_jwk: Json | null
         }
         Insert: {
           archived_at?: string | null
@@ -56,12 +56,12 @@ export type Database = {
         }
         Update: {
           archived_at?: string | null
-          created_at?: string
+          created_at?: string | null
           display_name?: string
-          fingerprint?: string
+          fingerprint?: string | null
           id?: string
-          last_seen_at?: string
-          public_key_jwk?: Json
+          last_seen_at?: string | null
+          public_key_jwk?: Json | null
         }
         Relationships: []
       }

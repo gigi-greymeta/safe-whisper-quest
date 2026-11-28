@@ -66,13 +66,19 @@ Deno.serve(async (req) => {
     admin.from("relay_messages").delete().eq("recipient_fingerprint", fingerprint),
     admin.from("relay_messages").delete().eq("sender_fingerprint", fingerprint),
     admin.from("pairwise_queues").delete().eq("owner_fingerprint", fingerprint),
-    admin.from("public_key_registry").delete().eq("fingerprint", fingerprint),
   ];
   for (const step of steps) {
     if (!step) continue;
     const { error } = await step;
     if (error) return json({ error: "Deletion failed, please retry" }, 500);
   }
+
+  // Only the service role may scrub the registry. The database function nulls
+  // every column except id and display_name, including future nullable fields.
+  const { error: registryError } = await admin.rpc("scrub_public_key_registry_entry", {
+    p_fingerprint: fingerprint,
+  });
+  if (registryError) return json({ error: "Deletion failed, please retry" }, 500);
 
   return json({ deleted: true });
 });

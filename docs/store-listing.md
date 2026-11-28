@@ -63,7 +63,7 @@ NO TRACKING. EVER.
 No ads, no analytics and no third-party tracking SDKs. We don't sell or share your data. Our servers hold only what's needed to deliver your messages: your display name, your public key, and encrypted messages waiting to be delivered.
 
 YOU'RE IN CONTROL
-Delete your account at any time from Settings. Your directory entry, inbox queues and pending messages are removed from our servers, and everything is erased from your device.
+Delete your account at any time from Settings. Your public key, fingerprint, inbox queues and pending messages are removed from our servers, and everything is erased from your device. The directory ID and display name remain.
 
 SUBSCRIPTION
 Phantom is free for one-to-one messaging. Standard adds group chats, voice messages and a locked notepad. Premium adds vanishing groups, voice calls, a voice filter, scrambled messages, pin drops, a decoy notes list, app disguise and Sentry Mode. Both are auto-renewing monthly subscriptions. The price is shown in the app before you buy. Payment is charged to your store account when you confirm. The subscription renews automatically unless you cancel at least 24 hours before the end of the current period, and you can manage or cancel it any time in your store account settings.

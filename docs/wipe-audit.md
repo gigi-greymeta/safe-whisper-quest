@@ -28,7 +28,7 @@ after the fixes in this audit. All full wipes now share `src/lib/eraseDevice.ts`
 | Panic PIN (lock screen, calculator, Notes decoy, notes PIN title, unscramble, notes unlock) | Wipe all data and delete your account | Missed the identity and contact copies; group deletion removed the groups | Server account (via sealed key) and history of groups you run, then full local erase |
 | Settings → Panic Pin button | Destroy keys, contacts, pairwise queues, messages, groups, vault, PINs | Phone only; server queues untouched | Same as the panic PIN |
 | Settings → Burn All Data | Permanently delete all data | Phone only, and left the identity and contact copies | Server account (best effort) and full local erase; wording updated |
-| Settings → Reset Wizard | Erase identity, contacts, chats, PINs, vault | Left the identity and contact copies, so the identity came back | Server account (best effort, frees your display name) and full local erase; list updated |
+| Settings → Reset Wizard | Erase identity, contacts, chats, PINs, vault | Left the identity and contact copies, so the identity came back | Server account (best effort, clears key and fingerprint but retains directory ID and display name) and full local erase; list updated |
 | Settings → Delete Account | Delete server account and everything on the phone | Left the identity and contact copies; ignored vanishing groups | Server account (required), group history, full local erase |
 | Sign Out | Lock, keep the vault | Correct | Unchanged |
 | Turn off panic PIN / screen lock / notes PIN | Removed | Could come back from the launch snapshot if the app closed before the next save | Saved to the vault and snapshot immediately |
